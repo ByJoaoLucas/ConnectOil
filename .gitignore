@@ -1,0 +1,56 @@
+# Dependencies
+node_modules/
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+
+# Build outputs
+frontend/dist/
+frontend/build/
+backend/target/*.jar
+backend/target/*.war
+backend/target/classes/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test coverage
+coverage/
+backend/target/site/jacoco/
+frontend/coverage/
+
+# Database
+*.sqlite
+*.db
+
+# Docker
+docker-compose.override.yml
+
+# SSL Certificates
+nginx/ssl/*.pem
+nginx/ssl/*.key
+nginx/ssl/*.crt
+
+# Misc
+*.tar.gz
+*.zip
+*.rar
