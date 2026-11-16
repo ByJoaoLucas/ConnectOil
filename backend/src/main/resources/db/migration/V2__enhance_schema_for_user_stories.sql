@@ -53,6 +53,8 @@ ALTER TABLE collection_records ADD COLUMN IF NOT EXISTS actual_volume_liters DEC
 ALTER TABLE collection_records ADD COLUMN IF NOT EXISTS confirmation_code VARCHAR(20);
 ALTER TABLE collection_records ADD COLUMN IF NOT EXISTS establishment_confirmed BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE collection_records ADD COLUMN IF NOT EXISTS establishment_confirmed_at TIMESTAMP;
+ALTER TABLE collection_records ADD COLUMN IF NOT EXISTS establishment_confirmed_by UUID REFERENCES users(id);
+ALTER TABLE collection_records ADD COLUMN IF NOT EXISTS verified_by UUID REFERENCES users(id);
 ALTER TABLE collection_records ADD COLUMN IF NOT EXISTS discrepancy_flag BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE collection_records ADD COLUMN IF NOT EXISTS discrepancy_reason TEXT;
 ALTER TABLE collection_records ADD COLUMN IF NOT EXISTS certificate_code VARCHAR(50) UNIQUE;
@@ -61,6 +63,8 @@ ALTER TABLE collection_records ADD COLUMN IF NOT EXISTS certificate_generated_at
 -- Add indexes
 CREATE INDEX IF NOT EXISTS idx_record_certificate_code ON collection_records(certificate_code);
 CREATE INDEX IF NOT EXISTS idx_record_discrepancy ON collection_records(discrepancy_flag) WHERE discrepancy_flag = true;
+CREATE INDEX IF NOT EXISTS idx_record_establishment_confirmed_by ON collection_records(establishment_confirmed_by);
+CREATE INDEX IF NOT EXISTS idx_record_verified_by ON collection_records(verified_by);
 
 -- ============================================
 -- NEW TABLE: PRODUCTS (US06)

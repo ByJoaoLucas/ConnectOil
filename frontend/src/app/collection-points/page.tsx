@@ -74,7 +74,7 @@ export default function CollectionPointsPage() {
     queryFn: () => collectionPointsApi.getAllList(),
   });
 
-  const points = pointsData?.data || [];
+  const points: CollectionPoint[] = pointsData?.data || [];
 
   const filteredPoints = points.filter((point) => {
     const matchesSearch =

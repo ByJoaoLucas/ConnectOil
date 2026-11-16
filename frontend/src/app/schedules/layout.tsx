@@ -5,7 +5,7 @@ import { Layout } from '@/components/Layout';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
-export default function SchedulesLayout() {
+export default function SchedulesLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
 
@@ -27,5 +27,5 @@ export default function SchedulesLayout() {
     return null;
   }
 
-  return <Layout />;
+  return <Layout>{children}</Layout>;
 }

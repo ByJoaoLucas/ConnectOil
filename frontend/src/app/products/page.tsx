@@ -62,9 +62,9 @@ export default function ProductsPage() {
     queryFn: () => productsApi.getAllList(),
   });
 
-  const products = productsData?.data || [];
+  const products: Product[] = productsData?.data || [];
 
-  const filteredProducts = products.filter((product) => {
+  const filteredProducts = products.filter((product: Product) => {
     const matchesSearch =
       product.name.toLowerCase().includes(search.toLowerCase()) ||
       product.category.toLowerCase().includes(search.toLowerCase()) ||
@@ -77,7 +77,7 @@ export default function ProductsPage() {
     return matchesSearch && matchesCategory && matchesStock;
   });
 
-  const categories = [...new Set(products.map(p => p.category))].sort();
+  const categories: string[] = [...new Set(products.map((p: Product) => p.category))].sort();
 
   const createMutation = useMutation({
     mutationFn: (data: ProductFormData) => productsApi.create(data),
@@ -196,7 +196,7 @@ export default function ProductsPage() {
                 className="input pl-10 pr-10 appearance-none"
               >
                 <option value="">Todas as categorias</option>
-                {categories.map((cat) => (
+                {categories.map((cat: string) => (
                   <option key={cat} value={cat}>{cat}</option>
                 ))}
               </select>
@@ -249,7 +249,7 @@ export default function ProductsPage() {
                       </td>
                     </tr>
                   ) : (
-                    filteredProducts.map((product) => (
+                    filteredProducts.map((product: Product) => (
                       <tr key={product.id}>
                         <td>
                           <div>

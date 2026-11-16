@@ -79,7 +79,11 @@ export default function CollectionCompletePage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const id = params.id as string;
+  const id = params?.id as string;
+
+  if (!id) {
+    return null;
+  }
   const [showDiscrepancyWarning, setShowDiscrepancyWarning] = useState(false);
   const [discrepancyDetails, setDiscrepancyDetails] = useState('');
 
@@ -135,11 +139,6 @@ export default function CollectionCompletePage() {
     }
   };
 
-  const handleVolumeChange = (value: number) => {
-    form.setValue('volumeCollectedLiters', value, { shouldValidate: true });
-    checkDiscrepancy(value);
-  };
-
   const {
     register,
     handleSubmit,
@@ -165,6 +164,11 @@ export default function CollectionCompletePage() {
       establishmentConfirmed: false,
     },
   });
+
+  const handleVolumeChange = (value: number) => {
+    setValue('volumeCollectedLiters', value, { shouldValidate: true });
+    checkDiscrepancy(value);
+  }
 
   const volume = watch('volumeCollectedLiters');
 
@@ -351,7 +355,7 @@ export default function CollectionCompletePage() {
                         </div>
                         <p className="text-xs text-gray-500 mt-1 text-right">
                           {((volume / schedule.estimatedVolumeLiters) * 100).toFixed(1)}% do estimado
-                          {discrepancyPercent > 20 && <span className="text-red-600 ml-2">⚠ Discrepância > 20%</span>}
+                          {discrepancyPercent > 20 && <span className="text-red-600 ml-2">{'⚠ Discrepância > 20%'}</span>}
                         </p>
                       </div>
                     )}
@@ -465,7 +469,7 @@ export default function CollectionCompletePage() {
                 />
                 <QualityIndicator
                   label="pH"
-                  value={watch('phLevel') !== undefined ? watch('phLevel').toFixed(1) : 'Não informado'}
+                  value={watch('phLevel') != null ? watch('phLevel')!.toFixed(1) : 'Não informado'}
                   icon={<Weight className="w-5 h-5" />}
                   color="text-blue-600"
                   threshold={7}

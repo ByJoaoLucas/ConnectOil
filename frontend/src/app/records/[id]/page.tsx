@@ -77,7 +77,7 @@ export default function RecordDetailPage() {
   const params = useParams();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const id = params.id as string;
+  const id = params?.id as string;
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const { data: recordData, isLoading: recordLoading, error: recordError } = useQuery({
@@ -184,8 +184,8 @@ export default function RecordDetailPage() {
     );
   }
 
-  const activePoints = points.filter(p => p.status === 'ACTIVE');
-  const activeCollectors = collectors.filter(c => c.isActive);
+  const activePoints = points.filter((p: CollectionPoint) => p.status === 'ACTIVE');
+  const activeCollectors = collectors.filter((c: UserType) => c.isActive);
 
   return (
     <div className="space-y-6">
@@ -357,7 +357,7 @@ export default function RecordDetailPage() {
                 <div className="mt-6 pt-6 border-t border-gray-200">
                   <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Fotos</label>
                   <div className="mt-3 flex flex-wrap gap-3">
-                    {record.photos.split(',').map((photo, index) => (
+                    {record.photos.split(',').map((photo: string, index: number) => (
                       <a
                         key={index}
                         href={photo.trim()}

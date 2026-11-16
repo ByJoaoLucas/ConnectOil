@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { recordsApi, collectionPointsApi, usersApi } from '@/lib/api';
-import { DailyVolumeDTO, CollectorPerformanceDTO, OilTypeVolumeDTO } from '@/types';
+import { DailyVolumeDTO, CollectorPerformanceDTO, OilTypeVolumeDTO, CollectionPoint } from '@/types';
 import {
   BarChart,
   Bar,
@@ -63,12 +63,12 @@ export default function ReportsPage() {
   const oilTypeVolumes = oilTypeData?.data || [];
   const points = pointsData?.data || [];
 
-  const totalVolume = dailyVolume.reduce((sum, d) => sum + d.totalVolume, 0);
-  const totalCollections = collectorPerformance.reduce((sum, c) => sum + c.totalCollections, 0);
+  const totalVolume = dailyVolume.reduce((sum: number, d: DailyVolumeDTO) => sum + d.totalVolume, 0);
+  const totalCollections = collectorPerformance.reduce((sum: number, c: CollectorPerformanceDTO) => sum + c.totalCollections, 0);
   const avgQuality = collectorPerformance.length > 0
-    ? collectorPerformance.reduce((sum, c) => sum + c.averageQuality, 0) / collectorPerformance.length
+    ? collectorPerformance.reduce((sum: number, c: CollectorPerformanceDTO) => sum + c.averageQuality, 0) / collectorPerformance.length
     : 0;
-  const activePoints = points.filter(p => p.status === 'ACTIVE').length;
+  const activePoints = points.filter((p: CollectionPoint) => p.status === 'ACTIVE').length;
 
   const handleDateChange = (field: 'startDate' | 'endDate', value: string) => {
     setFilters(prev => ({ ...prev, [field]: value }));
@@ -298,7 +298,7 @@ export default function ReportsPage() {
                   }
                   labelLine={false}
                 >
-                  {oilTypeVolumes.map((_, index) => (
+                  {oilTypeVolumes.map((_: OilTypeVolumeDTO, index: number) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
@@ -310,7 +310,7 @@ export default function ReportsPage() {
             </ResponsiveContainer>
           ) : activeTab === 'points' ? (
             <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={points.filter(p => p.currentVolumeLiters > 0).slice(0, 20)}>
+              <BarChart data={points.filter((p: CollectionPoint) => p.currentVolumeLiters > 0).slice(0, 20)}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis
                   dataKey="name"
@@ -349,7 +349,7 @@ export default function ReportsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {collectorPerformance.map((collector) => (
+                  {collectorPerformance.map((collector: CollectorPerformanceDTO) => (
                     <tr key={collector.collectorId}>
                       <td className="font-medium text-gray-900">{collector.collectorName}</td>
                       <td>{collector.totalCollections}</td>
@@ -395,8 +395,8 @@ export default function ReportsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {oilTypeVolumes.map((item, index) => {
-                    const total = oilTypeVolumes.reduce((sum, i) => sum + i.totalVolume, 0);
+                  {oilTypeVolumes.map((item: OilTypeVolumeDTO, index: number) => {
+                    const total = oilTypeVolumes.reduce((sum: number, i: OilTypeVolumeDTO) => sum + i.totalVolume, 0);
                     const percent = total > 0 ? (item.totalVolume / total) * 100 : 0;
                     return (
                       <tr key={index}>

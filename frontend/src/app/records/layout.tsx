@@ -5,7 +5,7 @@ import { Layout } from '@/components/Layout';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
-export default function RecordsLayout() {
+export default function RecordsLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
 
@@ -27,5 +27,5 @@ export default function RecordsLayout() {
     return null;
   }
 
-  return <Layout />;
+  return <Layout>{children}</Layout>;
 }

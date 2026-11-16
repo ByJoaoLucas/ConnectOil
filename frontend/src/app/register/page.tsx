@@ -44,12 +44,15 @@ export default function RegisterPage() {
   const onSubmit = async (data: RegisterForm) => {
     setIsLoading(true);
     try {
+      // Clean phone number: remove non-digits
+      const cleanPhoneNumber = data.phoneNumber ? data.phoneNumber.replace(/\D/g, '') : undefined;
+
       await registerUser({
         name: data.name,
         email: data.email,
         password: data.password,
         cpf: data.cpf,
-        phoneNumber: data.phoneNumber,
+        phoneNumber: cleanPhoneNumber,
         role: 'COLLECTOR',
       });
       toast.success('Conta criada com sucesso!');

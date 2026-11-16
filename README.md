@@ -7,7 +7,7 @@ Sistema completo para gestão de pontos de coleta, agendamentos e registros de c
 ```
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
 │   Frontend      │     │    Backend      │     │   Database      │
-│   (React)       │◄───►│   (Spring Boot) │◄───►│   (PostgreSQL)  │
+│   (Next.js 14)  │◄───►│   (Spring Boot) │◄───►│   (PostgreSQL)  │
 │   Port: 3000    │     │   Port: 8080    │     │   Port: 5432    │
 └─────────────────┘     └─────────────────┘     └─────────────────┘
 ```
@@ -15,34 +15,44 @@ Sistema completo para gestão de pontos de coleta, agendamentos e registros de c
 ## 🚀 Tecnologias
 
 ### Frontend
-- **React 18** com TypeScript
-- **Vite** como build tool
+- **Next.js 14** (App Router) com TypeScript
+- **React 18** com Server Components
 - **Tailwind CSS** para estilização
-- **React Router** para roteamento
-- **TanStack Query** para gerenciamento de estado servidor
+- **Next.js Router** para roteamento (App Router)
+- **TanStack Query (React Query v5)** para gerenciamento de estado servidor
 - **React Hook Form + Zod** para formulários e validação
 - **Axios** para requisições HTTP
-- **Recharts** para gráficos
+- **Recharts** para gráficos e relatórios
 - **React Leaflet** para mapas
+- **Lucide React** para ícones
+- **React Hot Toast** para notificações
+- **Zustand** para estado global
 - **Jest + React Testing Library** para testes
+- **ESLint + Prettier** para qualidade de código
 
 ### Backend
-- **Java 21** com **Spring Boot 3.2**
-- **Spring Data JPA** com Hibernate
-- **Spring Security** com JWT
+- **Java 21** com **Spring Boot 3.2.5**
+- **Spring Data JPA** com Hibernate 6.4
+- **Spring Security 6** com JWT (JJWT 0.12.5)
 - **Flyway** para migrações de banco
-- **PostgreSQL** como banco de dados
-- **MapStruct** para mapeamento DTO/Entity
-- **Lombok** para redução de boilerplate
-- **OpenAPI/Swagger** para documentação
+- **PostgreSQL 16** como banco de dados
+- **MapStruct 1.5.5** para mapeamento DTO/Entity
+- **Lombok 1.18.32** para redução de boilerplate
+- **Springdoc OpenAPI 2.3** para documentação (Swagger UI)
 - **JUnit 5 + Mockito + Testcontainers** para testes
-- **JaCoCo** para cobertura de código
+- **JaCoCo** para cobertura de código (meta 80%)
+- **Spring Boot Actuator** para health checks e métricas
+- **Spring Boot Mail** para notificações por email
 
 ### DevOps
-- **Docker** e **Docker Compose**
-- **GitHub Actions** para CI/CD
-- **Nginx** como reverse proxy
-- **PostgreSQL** em container
+- **Docker** e **Docker Compose** (multi-stage builds)
+- **GitHub Actions** para CI/CD (testes, build, push, deploy)
+- **Nginx** como reverse proxy (produção)
+- **PostgreSQL 16** em container
+- **pgAdmin 4** para administração do banco
+- **Trivy** para security scanning
+- **Maven** para build do backend
+- **npm** para build do frontend
 
 ## 📋 Funcionalidades
 
@@ -53,32 +63,51 @@ Sistema completo para gestão de pontos de coleta, agendamentos e registros de c
 - ✅ Status: Ativo, Inativo, Manutenção, Cheio, Pendente Aprovação
 - ✅ Atribuição de coletores
 - ✅ Filtros por cidade, status, coletor
+- ✅ Alertas de "quase cheio"
 
 ### Agendamentos
 - ✅ Criação e gestão de agendamentos
 - ✅ Status: Pendente, Confirmado, Em Andamento, Concluído, Cancelado, Reagendado
+- ✅ Tipos: Venda ou Troca (Exchange)
+- ✅ Janelas de horário: manhã, tarde, flexível
 - ✅ Filtros por data, coletor, ponto de coleta
 - ✅ Ações: Confirmar, Iniciar, Concluir, Cancelar, Reagendar
+- ✅ Regras de cancelamento (2h antes para estabelecimento)
 
 ### Registros de Coleta
 - ✅ Registro de coletas realizadas
-- ✅ Volume, tipo de óleo, qualidade, contaminação
+- ✅ Volume real, tipo de óleo, qualidade, contaminação
+- ✅ Código de confirmação
 - ✅ Verificação por gerentes
+- ✅ Detecção de discrepância (estimado vs real)
 - ✅ Fotos e observações
 - ✅ GPS da coleta
+
+### Venda e Troca de Óleo
+- ✅ Catálogo de produtos de limpeza
+- ✅ Preço base do óleo configurável
+- ✅ Cálculo de valor (venda) ou seleção de produtos (troca)
+- ✅ Itens de troca vinculados ao agendamento
 
 ### Relatórios
 - ✅ Volume diário
 - ✅ Desempenho por coletor
 - ✅ Distribuição por tipo de óleo
 - ✅ Exportação CSV
+- ✅ Certificados de coleta com código de verificação
 
 ### Usuários e Autenticação
-- ✅ JWT Authentication
-- ✅ Roles: ADMIN, MANAGER, COLLECTOR, CLIENT
+- ✅ JWT Authentication (access token 24h, refresh token 7 dias)
+- ✅ Roles: ADMIN, MANAGER, COLLECTOR, CLIENT, ESTABLISHMENT
 - ✅ Refresh token
-- ✅ Alteração de senha
+- ✅ Alteração de senha com validação de complexidade
 - ✅ Perfil do usuário
+- ✅ Bloqueio de conta após 5 tentativas falhas (30 min)
+
+### Incidentes e Auditoria
+- ✅ Registro de incidentes (vazamentos, acidentes)
+- ✅ Logs de auditoria para todas as operações críticas
+- ✅ Notificações in-app
 
 ## 🛠️ Como Executar
 
@@ -143,15 +172,15 @@ oil-collection/
 │   │   └── service/           # Lógica de negócio
 │   ├── src/main/resources/
 │   │   ├── application.yml    # Configurações
-│   │   └── db/migration/      # Scripts Flyway
+│   │   └── db/migration/      # Scripts Flyway (V1, V2, V3)
 │   └── src/test/              # Testes unitários e integração
 │
-├── frontend/                   # React Application
+├── frontend/                   # Next.js 14 Application
 │   ├── src/
+│   │   ├── app/               # App Router pages
 │   │   ├── components/        # Componentes reutilizáveis
 │   │   ├── contexts/          # React Contexts (Auth)
-│   │   ├── pages/             # Páginas/Rotas
-│   │   ├── services/          # API Services (Axios)
+│   │   ├── lib/               # Utilitários (API client)
 │   │   ├── types/             # TypeScript Types
 │   │   └── styles/            # Estilos globais (Tailwind)
 │   └── public/                # Assets estáticos
@@ -174,7 +203,11 @@ oil-collection/
 | `JWT_SECRET` | Chave secreta para JWT | (obrigatório em prod) |
 | `MAIL_HOST` | Servidor SMTP | `smtp.gmail.com` |
 | `MAIL_PORT` | Porta SMTP | `587` |
-| `VITE_API_URL` | URL da API no frontend | `http://localhost:8080/api` |
+| `MAIL_USERNAME` | Usuário SMTP | - |
+| `MAIL_PASSWORD` | Senha SMTP (app password) | - |
+| `NEXT_PUBLIC_API_URL` | URL da API no frontend | `http://localhost:8080/api` |
+| `PGADMIN_EMAIL` | Email do pgAdmin | `admin@oilcollection.com` |
+| `PGADMIN_PASSWORD` | Senha do pgAdmin | `admin123` |
 
 ## 🧪 Testes
 
@@ -207,6 +240,73 @@ npm run build
 ```bash
 docker-compose -f docker-compose.prod.yml up -d
 ```
+
+### Deploy com Railway (Backend) + Vercel (Frontend)
+
+#### 1. Preparação Local
+
+```bash
+# 1. Instale as CLIs
+npm i -g @railway/cli vercel
+
+# 2. Faça login
+railway login
+vercel login
+
+# 3. Configure variáveis de ambiente local (opcional)
+cp .env.example .env
+# Edite .env com suas credenciais
+```
+
+#### 2. Deploy do Backend no Railway
+
+```bash
+cd backend
+
+# Inicialize o projeto Railway (ou conecte a um existente)
+railway init
+
+# Configure as variáveis de ambiente no Railway
+railway variables set SPRING_PROFILES_ACTIVE=prod
+railway variables set DATABASE_URL="jdbc:postgresql://<railway-postgres-host>:5432/<dbname>"
+railway variables set DATABASE_USERNAME="<user>"
+railway variables set DATABASE_PASSWORD="<password>"
+railway variables set JWT_SECRET="<seu-jwt-secret-base64>"
+railway variables set MAIL_HOST="smtp.gmail.com"
+railway variables set MAIL_PORT="587"
+railway variables set MAIL_USERNAME="<seu-email>"
+railway variables set MAIL_PASSWORD="<app-password>"
+railway variables set FRONTEND_URL="https://<seu-projeto>.vercel.app"
+
+# Deploy
+railway up
+```
+
+**Nota:** O Railway cria automaticamente um banco PostgreSQL. Use `railway variables` para ver as variáveis geradas.
+
+#### 3. Deploy do Frontend no Vercel
+
+```bash
+cd frontend
+
+# Deploy (primeira vez)
+vercel
+
+# Deploy para produção
+vercel --prod
+```
+
+Configure as variáveis de ambiente no dashboard do Vercel:
+- `NEXT_PUBLIC_API_URL`: `https://<seu-backend>.railway.app` (ex: `https://connectoil-api.railway.app`)
+
+#### 4. Atualize CORS no Backend
+
+Após obter a URL do Vercel, atualize a variável `FRONTEND_URL` no Railway:
+```bash
+railway variables set FRONTEND_URL="https://seu-projeto.vercel.app"
+```
+
+Redeploy automático será acionado.
 
 ### Kubernetes (Exemplo)
 ```yaml
@@ -245,22 +345,30 @@ Acesse o Swagger UI em: `http://localhost:8080/api/swagger-ui.html`
 |--------|----------|-----------|
 | POST | `/api/auth/login` | Login |
 | POST | `/api/auth/register` | Registro |
+| POST | `/api/auth/refresh` | Refresh token |
+| GET | `/api/auth/me` | Usuário atual |
 | GET | `/api/collection-points` | Listar pontos |
 | POST | `/api/collection-points` | Criar ponto |
 | GET | `/api/schedules` | Listar agendamentos |
 | POST | `/api/schedules` | Criar agendamento |
 | GET | `/api/records` | Listar registros |
 | POST | `/api/records` | Criar registro |
+| GET | `/api/collector/complete/{id}` | Completar coleta |
 | GET | `/api/reports/*` | Relatórios |
+| GET | `/api/products` | Listar produtos |
+| GET | `/api/incidents` | Listar incidentes |
+| GET | `/api/notifications` | Notificações |
 
 ## 🔒 Segurança
 
 - Senhas criptografadas com BCrypt (cost 12)
 - JWT com expiração de 24h e refresh token de 7 dias
-- CORS configurado
-- Validação de entrada em todas as camadas
-- Rate limiting (configurável)
-- Headers de segurança no Nginx
+- CORS configurado para origins específicas
+- Validação de entrada em todas as camadas (Bean Validation)
+- Rate limiting configurável
+- Headers de segurança (HSTS, X-Frame-Options, CSP)
+- Account lockout após 5 tentativas (30 min)
+- Auditoria de todas as operações sensíveis
 
 ## 🤝 Contribuindo
 

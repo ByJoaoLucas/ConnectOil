@@ -17,7 +17,8 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, UUID> {
 
     List<AuditLog> findByEntityTypeAndEntityId(String entityType, UUID entityId);
 
-    List<AuditLog> findByChangedBy(UUID changedBy);
+    @Query("SELECT a FROM AuditLog a WHERE a.changedBy.id = :changedById")
+    List<AuditLog> findByChangedById(@Param("changedById") UUID changedById);
 
     Page<AuditLog> findByEntityTypeAndEntityId(String entityType, UUID entityId, Pageable pageable);
 

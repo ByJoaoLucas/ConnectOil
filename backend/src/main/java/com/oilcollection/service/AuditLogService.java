@@ -29,7 +29,7 @@ public class AuditLogService {
     }
 
     public List<AuditLog> findByUser(UUID userId) {
-        return auditLogRepository.findByChangedBy(userId);
+        return auditLogRepository.findByChangedById(userId);
     }
 
     public List<AuditLog> findRecent(LocalDateTime since) {

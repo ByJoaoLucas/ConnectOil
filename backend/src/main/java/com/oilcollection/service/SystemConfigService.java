@@ -43,7 +43,7 @@ public class SystemConfigService {
     }
 
     public String getConfigValue(String key) {
-        return configRepository.findConfigValueByConfigKey(key);
+        return configRepository.findConfigValueByConfigKey(key).orElse(null);
     }
 
     public Optional<SystemConfig> findByKey(String key) {

@@ -6,13 +6,12 @@ import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
-import java.security.Key;
+import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -23,7 +22,7 @@ import java.util.stream.Collectors;
 public class JwtTokenProvider {
 
     private final JwtProperties jwtProperties;
-    private Key key;
+    private SecretKey key;
 
     public JwtProperties getJwtProperties() {
         return jwtProperties;
@@ -45,12 +44,12 @@ public class JwtTokenProvider {
         Date expiry = new Date(now.getTime() + jwtProperties.getExpirationMs());
 
         return Jwts.builder()
-                .setSubject(userDetails.getUsername())
+                .subject(userDetails.getUsername())
                 .claim("roles", roles)
-                .setIssuer(jwtProperties.getIssuer())
-                .setIssuedAt(now)
-                .setExpiration(expiry)
-                .signWith(key, SignatureAlgorithm.HS512)
+                .issuer(jwtProperties.getIssuer())
+                .issuedAt(now)
+                .expiration(expiry)
+                .signWith(key)
                 .compact();
     }
 
@@ -59,17 +58,17 @@ public class JwtTokenProvider {
         Date expiry = new Date(now.getTime() + jwtProperties.getRefreshExpirationMs());
 
         return Jwts.builder()
-                .setSubject(username)
-                .setIssuer(jwtProperties.getIssuer())
-                .setIssuedAt(now)
-                .setExpiration(expiry)
-                .signWith(key, SignatureAlgorithm.HS512)
+                .subject(username)
+                .issuer(jwtProperties.getIssuer())
+                .issuedAt(now)
+                .expiration(expiry)
+                .signWith(key)
                 .compact();
     }
 
     public boolean validateToken(String token) {
         try {
-            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
+            Jwts.parser().verifyWith(key).build().parseSignedClaims(token);
             return true;
         } catch (JwtException | IllegalArgumentException e) {
             log.debug("Invalid JWT token: {}", e.getMessage());
@@ -78,29 +77,29 @@ public class JwtTokenProvider {
     }
 
     public String getUsernameFromToken(String token) {
-        Claims claims = Jwts.parserBuilder()
-                .setSigningKey(key)
+        Claims claims = Jwts.parser()
+                .verifyWith(key)
                 .build()
-                .parseClaimsJws(token)
-                .getBody();
+                .parseSignedClaims(token)
+                .getPayload();
         return claims.getSubject();
     }
 
     public List<String> getRolesFromToken(String token) {
-        Claims claims = Jwts.parserBuilder()
-                .setSigningKey(key)
+        Claims claims = Jwts.parser()
+                .verifyWith(key)
                 .build()
-                .parseClaimsJws(token)
-                .getBody();
+                .parseSignedClaims(token)
+                .getPayload();
         return claims.get("roles", List.class);
     }
 
     public boolean isTokenExpired(String token) {
-        Claims claims = Jwts.parserBuilder()
-                .setSigningKey(key)
+        Claims claims = Jwts.parser()
+                .verifyWith(key)
                 .build()
-                .parseClaimsJws(token)
-                .getBody();
+                .parseSignedClaims(token)
+                .getPayload();
         return claims.getExpiration().before(new Date());
     }
 }

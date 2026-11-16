@@ -77,7 +77,7 @@ export default function SchedulesPage() {
   const points = pointsData?.data || [];
   const collectors = collectorsData?.data || [];
 
-  const filteredSchedules = schedules.filter((schedule) => {
+  const filteredSchedules = schedules.filter((schedule: CollectionSchedule) => {
     const matchesSearch =
       schedule.collectionPointName?.toLowerCase().includes(search.toLowerCase()) ||
       schedule.collectorName?.toLowerCase().includes(search.toLowerCase()) ||
@@ -303,7 +303,7 @@ export default function SchedulesPage() {
                       </td>
                     </tr>
                   ) : (
-                    filteredSchedules.map((schedule) => (
+                    filteredSchedules.map((schedule: CollectionSchedule) => (
                       <tr key={schedule.id}>
                         <td>
                           <div>

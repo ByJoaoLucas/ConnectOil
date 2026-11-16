@@ -1,9 +1,18 @@
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+// Backend has context-path /api and controller /api/auth -> full path /api/api/auth
+// In browser, use localhost:8080. In container (SSR), use backend:8080
+const getApiBaseUrl = () => {
+  if (typeof window !== 'undefined') {
+    // Browser: use host machine's localhost
+    return 'http://localhost:8080/api/api';
+  }
+  // Server-side (SSR): use Docker network
+  return `${process.env.NEXT_PUBLIC_API_URL || 'http://backend:8080/api'}/api`;
+};
 
 export const api = axios.create({
-  baseURL: API_URL,
+  baseURL: getApiBaseUrl(),
   headers: {
     'Content-Type': 'application/json',
   },
@@ -36,7 +45,7 @@ api.interceptors.response.use(
       const refreshToken = localStorage.getItem('refreshToken');
       if (refreshToken) {
         try {
-          const response = await axios.post(`${API_URL}/auth/refresh`, null, {
+          const response = await axios.post(`${getApiBaseUrl()}/auth/refresh`, null, {
             params: { refreshToken },
           });
 

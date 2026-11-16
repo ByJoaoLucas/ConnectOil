@@ -19,6 +19,8 @@ public interface CollectionPointRepository extends JpaRepository<CollectionPoint
 
     List<CollectionPoint> findByStatus(CollectionPoint.PointStatus status);
 
+    Page<CollectionPoint> findByStatus(CollectionPoint.PointStatus status, Pageable pageable);
+
     List<CollectionPoint> findByCollector(User collector);
 
     Page<CollectionPoint> findByCollector(User collector, Pageable pageable);

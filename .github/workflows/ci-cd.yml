@@ -58,7 +58,7 @@ jobs:
           DATABASE_URL: jdbc:postgresql://localhost:5432/oil_collection_test
           DATABASE_USERNAME: test
           DATABASE_PASSWORD: test
-          JWT_SECRET: bXktc2VjcmV0LWtleS1mb3ItanN0LXRva2VuLWdlbmVyYXRpb24taW4tb2lsLWNvbGxlY3Rpb24tc3lzdGVt
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
           SPRING_PROFILES_ACTIVE: test
 
       - name: Generate test report
@@ -103,7 +103,7 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          NEXT_PUBLIC_API_URL: http://localhost:8080/api
+          NEXT_PUBLIC_API_URL: http://localhost:8080/api/api
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -156,6 +156,12 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            MAIL_HOST=${{ secrets.MAIL_HOST }}
+            MAIL_PORT=${{ secrets.MAIL_PORT }}
+            MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}
+            MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -203,6 +209,8 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

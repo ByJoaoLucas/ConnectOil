@@ -119,7 +119,7 @@ VALUES (
     uuid_generate_v4(),
     'System Administrator',
     'admin@oilcollection.com',
-    '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj/RK.PZvO.S',
+    '$2a$12$5B5LDD6yzdca1S.krjHLteG2Scita//1jj/PZLpbK5mS8Llz60fEK',
     '00000000000',
     'ADMIN',
     true,

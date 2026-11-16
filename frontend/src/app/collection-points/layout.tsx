@@ -5,7 +5,7 @@ import { Layout } from '@/components/Layout';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
-export default function CollectionPointsLayout() {
+export default function CollectionPointsLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
 
@@ -27,5 +27,5 @@ export default function CollectionPointsLayout() {
     return null;
   }
 
-  return <Layout />;
+  return <Layout>{children}</Layout>;
 }

@@ -3,6 +3,7 @@
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { schedulesApi, recordsApi, collectionPointsApi, usersApi } from '@/lib/api';
 import { CollectionSchedule, CollectionRecord, CollectionPoint, User as UserType } from '@/types';
 import toast from 'react-hot-toast';
@@ -55,7 +56,7 @@ export default function ScheduleDetailPage() {
   const params = useParams();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const id = params.id as string;
+  const id = params?.id as string;
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const { data: scheduleData, isLoading: scheduleLoading, error: scheduleError } = useQuery({
@@ -218,8 +219,8 @@ export default function ScheduleDetailPage() {
     );
   }
 
-  const activePoints = points.filter(p => p.status === 'ACTIVE');
-  const activeCollectors = collectors.filter(c => c.isActive);
+  const activePoints = points.filter((p: CollectionPoint) => p.status === 'ACTIVE');
+  const activeCollectors = collectors.filter((c: UserType) => c.isActive);
 
   return (
     <div className="space-y-6">
@@ -381,7 +382,7 @@ export default function ScheduleDetailPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {records.map((record) => (
+                      {records.map((record: CollectionRecord) => (
                         <tr key={record.id}>
                           <td>{format(new Date(record.collectionDate), 'dd/MM/yyyy HH:mm', { locale: ptBR })}</td>
                           <td className="font-medium">{record.volumeCollectedLiters.toLocaleString('pt-BR')}</td>
@@ -405,11 +406,8 @@ export default function ScheduleDetailPage() {
                             )}
                           </td>
                           <td>
-                            <span className={`badge ${
-                              record.status === 'VERIFIED' ? 'badge-success' :
-                              record.status === 'REJECTED' ? 'badge-danger' : 'badge-warning'
-                            }`}>
-                              {record.status}
+                            <span className={record.verifiedByManager ? 'badge-success' : 'badge-warning'}>
+                              {record.verifiedByManager ? 'Verificado' : 'Pendente'}
                             </span>
                           </td>
                         </tr>
@@ -487,9 +485,9 @@ export default function ScheduleDetailPage() {
             </div>
             <div className="card-body space-y-4">
               <StatItem label="Volume Estimado" value={schedule.estimatedVolumeLiters ? `${schedule.estimatedVolumeLiters.toLocaleString('pt-BR')} L` : 'Não informado'} icon={<Package className="w-5 h-5" />} color="text-blue-600" />
-              <StatItem label="Volume Coletado" value={`${records.reduce((sum, r) => sum + r.volumeCollectedLiters, 0).toLocaleString('pt-BR')} L`} icon={<Truck className="w-5 h-5" />} color="text-green-600" />
+              <StatItem label="Volume Coletado" value={`${records.reduce((sum: number, r: CollectionRecord) => sum + r.volumeCollectedLiters, 0).toLocaleString('pt-BR')} L`} icon={<Truck className="w-5 h-5" />} color="text-green-600" />
               <StatItem label="Total de Coletas" value={records.length} icon={<Calendar className="w-5 h-5" />} color="text-purple-600" />
-              <StatItem label="Qualidade Média" value={records.length > 0 ? (records.reduce((sum, r) => sum + (r.qualityRating || 0), 0) / records.filter(r => r.qualityRating).length).toFixed(1) : '-'} icon={<CheckCircle className="w-5 h-5" />} color="text-yellow-600" />
+              <StatItem label="Qualidade Média" value={records.length > 0 ? (records.reduce((sum: number, r: CollectionRecord) => sum + (r.qualityRating || 0), 0) / records.filter((r: CollectionRecord) => r.qualityRating).length).toFixed(1) : '-'} icon={<CheckCircle className="w-5 h-5" />} color="text-yellow-600" />
             </div>
           </div>
         </div>

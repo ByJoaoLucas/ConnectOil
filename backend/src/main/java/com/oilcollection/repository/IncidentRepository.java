@@ -25,6 +25,6 @@ public interface IncidentRepository extends JpaRepository<Incident, UUID> {
 
     Page<Incident> findByStatus(String status, Pageable pageable);
 
-    @Query("SELECT i FROM Incident i WHERE i.collectionPointId = :pointId AND i.reportedAt >= :since")
+    @Query("SELECT i FROM Incident i WHERE i.collectionPoint.id = :pointId AND i.reportedAt >= :since")
     List<Incident> findRecentByCollectionPoint(@Param("pointId") UUID pointId, @Param("since") LocalDateTime since);
 }

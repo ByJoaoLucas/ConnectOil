@@ -3,10 +3,22 @@ FROM maven:3.9.6-eclipse-temurin-21-alpine AS builder
 
 WORKDIR /app
 
+# Build args for CI/CD
+ARG JWT_SECRET
+ARG MAIL_HOST
+ARG MAIL_PORT
+ARG MAIL_USERNAME
+ARG MAIL_PASSWORD
+
 COPY pom.xml .
 COPY src ./src
 
-RUN mvn clean package -DskipTests -Pdocker
+RUN mvn clean package -Dmaven.test.skip=true -Pdocker \
+    -DJWT_SECRET="${JWT_SECRET}" \
+    -DMAIL_HOST="${MAIL_HOST}" \
+    -DMAIL_PORT="${MAIL_PORT}" \
+    -DMAIL_USERNAME="${MAIL_USERNAME}" \
+    -DMAIL_PASSWORD="${MAIL_PASSWORD}"
 
 # Runtime stage
 FROM eclipse-temurin:21-jre-alpine

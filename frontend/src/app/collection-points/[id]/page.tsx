@@ -43,7 +43,11 @@ export default function CollectionPointDetailPage() {
   const params = useParams();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const id = params.id as string;
+  const id = params?.id as string;
+
+  if (!id) {
+    return null; // or redirect
+  }
 
   const { data: pointData, isLoading: pointLoading, error: pointError } = useQuery({
     queryKey: ['collectionPoint', id],
@@ -53,19 +57,19 @@ export default function CollectionPointDetailPage() {
 
   const { data: schedulesData, isLoading: schedulesLoading } = useQuery({
     queryKey: ['collectionPointSchedules', id],
-    queryFn: () => schedulesApi.getByCollectionPoint(id),
+    queryFn: () => schedulesApi.getByPoint(id),
     enabled: !!id,
   });
 
   const { data: recordsData, isLoading: recordsLoading } = useQuery({
     queryKey: ['collectionPointRecords', id],
-    queryFn: () => recordsApi.getByCollectionPoint(id),
+    queryFn: () => recordsApi.getByPoint(id),
     enabled: !!id,
   });
 
   const point = pointData?.data;
-  const schedules = schedulesData?.data || [];
-  const records = recordsData?.data || [];
+  const schedules: CollectionSchedule[] = schedulesData?.data || [];
+  const records: CollectionRecord[] = recordsData?.data || [];
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => collectionPointsApi.delete(id),
@@ -346,11 +350,8 @@ export default function CollectionPointDetailPage() {
                             <td className="font-medium">{record.volumeCollectedLiters.toLocaleString('pt-BR')}</td>
                             <td className="capitalize">{record.oilType}</td>
                             <td>
-                              <span className={`badge ${
-                                record.status === 'VERIFIED' ? 'badge-success' :
-                                record.status === 'REJECTED' ? 'badge-danger' : 'badge-warning'
-                              }`}>
-                                {record.status}
+                              <span className={record.verifiedByManager ? 'badge-success' : 'badge-warning'}>
+                                {record.verifiedByManager ? 'Verificado' : 'Pendente'}
                               </span>
                             </td>
                             <td>

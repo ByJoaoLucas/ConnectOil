@@ -1,6 +1,7 @@
 'use client';
 
-import { Outlet, NavLink, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -27,7 +28,11 @@ const navigation = [
   { name: 'Usuários', href: '/users', icon: Users, roles: ['ADMIN', 'MANAGER'] },
 ];
 
-export function Layout() {
+interface LayoutProps {
+  children: React.ReactNode;
+}
+
+export function Layout({ children }: LayoutProps) {
   const { user, logout } = useAuth();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -74,21 +79,19 @@ export function Layout() {
 
           <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
             {filteredNavigation.map((item) => (
-              <NavLink
+              <Link
                 key={item.name}
                 href={item.href}
-                className={({ isActive }) =>
-                  `flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                  }`
-                }
+                className={`flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                  window.location.pathname === item.href
+                    ? 'bg-primary-50 text-primary-700'
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                }`}
                 onClick={() => setMobileSidebarOpen(false)}
               >
                 <item.icon className={`w-5 h-5 mr-3 ${sidebarOpen ? '' : 'mx-auto'}`} aria-hidden="true" />
                 {sidebarOpen && <span>{item.name}</span>}
-              </NavLink>
+              </Link>
             ))}
           </nav>
 
@@ -145,7 +148,7 @@ export function Layout() {
         </header>
 
         <main className="p-4 sm:p-6 lg:p-8">
-          <Outlet />
+          {children}
         </main>
       </div>
     </div>

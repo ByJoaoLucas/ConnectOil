@@ -98,7 +98,7 @@ export default function RecordsPage() {
   const points = pointsData?.data || [];
   const collectors = collectorsData?.data || [];
 
-  const filteredRecords = records.filter((record) => {
+  const filteredRecords = records.filter((record: CollectionRecord) => {
     const matchesSearch =
       record.collectionPointName?.toLowerCase().includes(search.toLowerCase()) ||
       record.collectorName?.toLowerCase().includes(search.toLowerCase()) ||
@@ -227,7 +227,7 @@ export default function RecordsPage() {
                 className="input pl-10 pr-10 appearance-none"
               >
                 <option value="">Todos os pontos</option>
-                {points.map((point) => (
+                {points.map((point: CollectionPoint) => (
                   <option key={point.id} value={point.id}>
                     {point.name}
                   </option>
@@ -242,7 +242,7 @@ export default function RecordsPage() {
                 className="input pl-10 pr-10 appearance-none"
               >
                 <option value="">Todos os coletores</option>
-                {collectors.map((collector) => (
+                {collectors.map((collector: User) => (
                   <option key={collector.id} value={collector.id}>
                     {collector.name}
                   </option>
@@ -305,7 +305,7 @@ export default function RecordsPage() {
                       </td>
                     </tr>
                   ) : (
-                    filteredRecords.map((record) => (
+                    filteredRecords.map((record: CollectionRecord) => (
                       <tr key={record.id}>
                         <td>
                           <div>
@@ -335,11 +335,8 @@ export default function RecordsPage() {
                           )}
                         </td>
                         <td>
-                          <span className={`badge ${
-                            record.status === 'VERIFIED' ? 'badge-success' :
-                            record.status === 'REJECTED' ? 'badge-danger' : 'badge-warning'
-                          }`}>
-                            {record.status}
+                          <span className={record.verifiedByManager ? 'badge-success' : 'badge-warning'}>
+                            {record.verifiedByManager ? 'Verificado' : 'Pendente'}
                           </span>
                         </td>
                         <td>

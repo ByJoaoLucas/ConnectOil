@@ -5,7 +5,7 @@ import { Layout } from '@/components/Layout';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
-export default function UsersLayout() {
+export default function UsersLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user } = useAuth();
   const router = useRouter();
 
@@ -29,5 +29,5 @@ export default function UsersLayout() {
     return null;
   }
 
-  return <Layout />;
+  return <Layout>{children}</Layout>;
 }

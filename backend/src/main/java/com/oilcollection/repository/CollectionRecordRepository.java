@@ -1,5 +1,8 @@
 package com.oilcollection.repository;
 
+import com.oilcollection.dto.DailyVolumeDTO;
+import com.oilcollection.dto.CollectorPerformanceDTO;
+import com.oilcollection.dto.OilTypeVolumeDTO;
 import com.oilcollection.model.CollectionPoint;
 import com.oilcollection.model.CollectionRecord;
 import com.oilcollection.model.CollectionSchedule;
@@ -12,7 +15,6 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;

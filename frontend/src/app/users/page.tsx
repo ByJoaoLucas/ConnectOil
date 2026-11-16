@@ -61,7 +61,7 @@ export default function UsersPage() {
 
   const users = usersData?.data || [];
 
-  const filteredUsers = users.filter((user) => {
+  const filteredUsers = users.filter((user: UserType) => {
     const matchesSearch =
       user.name.toLowerCase().includes(search.toLowerCase()) ||
       user.email.toLowerCase().includes(search.toLowerCase()) ||
@@ -245,7 +245,7 @@ export default function UsersPage() {
                       </td>
                     </tr>
                   ) : (
-                    filteredUsers.map((user) => (
+                    filteredUsers.map((user: UserType) => (
                       <tr key={user.id}>
                         <td>
                           <div>
@@ -260,7 +260,7 @@ export default function UsersPage() {
                             user.role === 'MANAGER' ? 'badge-blue' :
                             user.role === 'COLLECTOR' ? 'badge-green' : 'badge-gray'
                           }`}>
-                            {USER_ROLE_LABELS[user.role]}
+                            {USER_ROLE_LABELS[user.role as keyof typeof USER_ROLE_LABELS]}
                           </span>
                         </td>
                         <td>

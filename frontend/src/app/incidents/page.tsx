@@ -72,7 +72,7 @@ export default function IncidentsPage() {
   const incidents = incidentsData?.data || [];
   const points = pointsData?.data || [];
 
-  const filteredIncidents = incidents.filter((incident) => {
+  const filteredIncidents = incidents.filter((incident: Incident) => {
     const matchesSearch =
       incident.incidentType.toLowerCase().includes(search.toLowerCase()) ||
       incident.description?.toLowerCase().includes(search.toLowerCase()) ||
@@ -267,7 +267,7 @@ export default function IncidentsPage() {
                 className="input pl-10 pr-10 appearance-none"
               >
                 <option value="">Todos os pontos</option>
-                {points.map((point) => (
+                {points.map((point: CollectionPoint) => (
                   <option key={point.id} value={point.id}>{point.name}</option>
                 ))}
               </select>
@@ -306,7 +306,7 @@ export default function IncidentsPage() {
                       </td>
                     </tr>
                   ) : (
-                    filteredIncidents.map((incident) => (
+                    filteredIncidents.map((incident: Incident) => (
                       <tr key={incident.id} className={incident.severity === 'CRITICAL' ? 'bg-red-50' : ''}>
                         <td>
                           <div>
@@ -326,7 +326,7 @@ export default function IncidentsPage() {
                         </td>
                         <td className="text-sm text-gray-600">{incident.reporterName || '-'}</td>
                         <td className="text-sm text-gray-600">
-                          {format(new Date(incident.createdAt), 'dd/MM/yyyy HH:mm', { locale: ptBR })}
+                          {incident.createdAt ? format(new Date(incident.createdAt), 'dd/MM/yyyy HH:mm', { locale: ptBR }) : '-'}
                         </td>
                         <td className="text-right">
                           <div className="flex items-center justify-end space-x-2">

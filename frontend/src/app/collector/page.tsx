@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { schedulesApi, collectionPointsApi, usersApi } from '@/lib/api';
-import { CollectionSchedule, CollectionPoint, User } from '@/types';
+import { CollectionSchedule, CollectionPoint } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
@@ -21,6 +21,8 @@ import {
   AlertCircle,
   Navigation,
   MapPin as MapPinIcon,
+  Phone,
+  User,
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
@@ -50,7 +52,7 @@ export default function CollectorDashboardPage() {
     queryKey: ['collectorSchedules', user?.id, statusFilter, dateFilter],
     queryFn: () => {
       if (statusFilter === 'ALL') {
-        return schedulesApi.getByCollector(user?.id || '', { start: dateFilter, end: dateFilter });
+        return schedulesApi.getByCollectorAndDateRange(user?.id || '', dateFilter, dateFilter);
       }
       return schedulesApi.getByCollectorAndStatus(user?.id || '', statusFilter);
     },
@@ -65,8 +67,8 @@ export default function CollectorDashboardPage() {
     enabled: !!user?.id && user.role === 'COLLECTOR',
   });
 
-  const schedules = schedulesData?.data || [];
-  const points = pointsData?.data || [];
+  const schedules: CollectionSchedule[] = schedulesData?.data || [];
+  const points: CollectionPoint[] = pointsData?.data || [];
 
   // Filter points by status if needed
   const filteredPoints = points.filter(point => {

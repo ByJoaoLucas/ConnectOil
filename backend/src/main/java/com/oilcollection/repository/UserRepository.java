@@ -23,6 +23,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     boolean existsByCpf(String cpf);
 
+    boolean existsByCnpj(String cnpj);
+
     List<User> findByRole(User.UserRole role);
 
     Page<User> findByRole(User.UserRole role, Pageable pageable);
@@ -35,5 +37,5 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Query("SELECT u FROM User u WHERE u.lastLogin < :date AND u.isActive = true")
     List<User> findInactiveUsersSince(@Param("date") java.time.LocalDateTime date);
 
-    List<User> findByCollectorCollectionPointsIsNotNull();
+    List<User> findByCollectionPointsIsNotNull();
 }
