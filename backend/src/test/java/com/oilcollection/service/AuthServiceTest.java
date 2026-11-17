@@ -7,6 +7,7 @@ import com.oilcollection.exception.BusinessException;
 import com.oilcollection.model.User;
 import com.oilcollection.repository.UserRepository;
 import com.oilcollection.security.JwtTokenProvider;
+import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,6 +41,15 @@ class AuthServiceTest {
     @Mock
     private JwtTokenProvider jwtTokenProvider;
 
+    @Mock
+    private SystemConfigService systemConfigService;
+
+    @Mock
+    private AuditLogService auditLogService;
+
+    @Mock
+    private HttpServletRequest httpRequest;
+
     @InjectMocks
     private AuthService authService;
 
@@ -49,6 +59,14 @@ class AuthServiceTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(httpRequest.getHeader("User-Agent")).thenReturn("test-agent");
+        lenient().when(httpRequest.getRemoteAddr()).thenReturn("127.0.0.1");
+        lenient().when(systemConfigService.getPasswordMinLength()).thenReturn(8);
+        lenient().when(systemConfigService.getPasswordRequireUppercase()).thenReturn(false);
+        lenient().when(systemConfigService.getPasswordRequireLowercase()).thenReturn(false);
+        lenient().when(systemConfigService.getPasswordRequireNumber()).thenReturn(false);
+        lenient().when(systemConfigService.getPasswordRequireSpecial()).thenReturn(false);
+
         testUser = User.builder()
                 .id(UUID.randomUUID())
                 .name("Test User")
@@ -74,13 +92,14 @@ class AuthServiceTest {
     @Test
     void login_Success() {
         Authentication authentication = new UsernamePasswordAuthenticationToken(testUser, null, testUser.getAuthorities());
+        when(userRepository.findByEmail(loginRequest.getEmail())).thenReturn(Optional.of(testUser));
         when(authenticationManager.authenticate(any())).thenReturn(authentication);
-        when(userRepository.save(any())).thenReturn(testUser);
+        when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(jwtTokenProvider.generateToken(authentication)).thenReturn("access-token");
         when(jwtTokenProvider.generateRefreshToken(testUser.getEmail())).thenReturn("refresh-token");
         when(jwtTokenProvider.getJwtProperties()).thenReturn(new com.oilcollection.security.JwtProperties());
 
-        AuthResponseDTO response = authService.login(loginRequest);
+        AuthResponseDTO response = authService.login(loginRequest, httpRequest);
 
         assertNotNull(response);
         assertEquals("access-token", response.getAccessToken());
@@ -94,12 +113,12 @@ class AuthServiceTest {
         when(userRepository.existsByEmail(registerRequest.getEmail())).thenReturn(false);
         when(userRepository.existsByCpf(registerRequest.getCpf())).thenReturn(false);
         when(passwordEncoder.encode(registerRequest.getPassword())).thenReturn("encodedPassword");
-        when(userRepository.save(any())).thenReturn(testUser);
+        when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(jwtTokenProvider.generateToken(any())).thenReturn("access-token");
         when(jwtTokenProvider.generateRefreshToken(registerRequest.getEmail())).thenReturn("refresh-token");
         when(jwtTokenProvider.getJwtProperties()).thenReturn(new com.oilcollection.security.JwtProperties());
 
-        AuthResponseDTO response = authService.register(registerRequest);
+        AuthResponseDTO response = authService.register(registerRequest, httpRequest);
 
         assertNotNull(response);
         assertEquals("access-token", response.getAccessToken());
@@ -111,7 +130,7 @@ class AuthServiceTest {
         when(userRepository.existsByEmail(registerRequest.getEmail())).thenReturn(true);
 
         BusinessException exception = assertThrows(BusinessException.class,
-                () -> authService.register(registerRequest));
+                () -> authService.register(registerRequest, httpRequest));
 
         assertEquals("EMAIL_ALREADY_EXISTS", exception.getErrorCode());
     }
@@ -122,7 +141,7 @@ class AuthServiceTest {
         when(userRepository.existsByCpf(registerRequest.getCpf())).thenReturn(true);
 
         BusinessException exception = assertThrows(BusinessException.class,
-                () -> authService.register(registerRequest));
+                () -> authService.register(registerRequest, httpRequest));
 
         assertEquals("CPF_ALREADY_EXISTS", exception.getErrorCode());
     }
@@ -137,7 +156,7 @@ class AuthServiceTest {
         when(jwtTokenProvider.generateRefreshToken(testUser.getEmail())).thenReturn("new-refresh-token");
         when(jwtTokenProvider.getJwtProperties()).thenReturn(new com.oilcollection.security.JwtProperties());
 
-        AuthResponseDTO response = authService.refreshToken(refreshToken);
+        AuthResponseDTO response = authService.refreshToken(refreshToken, httpRequest);
 
         assertNotNull(response);
         assertEquals("new-access-token", response.getAccessToken());
@@ -150,7 +169,7 @@ class AuthServiceTest {
         when(jwtTokenProvider.validateToken(refreshToken)).thenReturn(false);
 
         BusinessException exception = assertThrows(BusinessException.class,
-                () -> authService.refreshToken(refreshToken));
+                () -> authService.refreshToken(refreshToken, httpRequest));
 
         assertEquals("INVALID_REFRESH_TOKEN", exception.getErrorCode());
     }
@@ -162,7 +181,7 @@ class AuthServiceTest {
         when(passwordEncoder.matches("currentPassword", testUser.getPassword())).thenReturn(true);
         when(passwordEncoder.encode("newPassword")).thenReturn("newEncodedPassword");
 
-        authService.changePassword(userId, "currentPassword", "newPassword");
+        authService.changePassword(userId, "currentPassword", "newPassword", httpRequest);
 
         verify(userRepository).save(testUser);
         assertEquals("newEncodedPassword", testUser.getPassword());
@@ -175,7 +194,7 @@ class AuthServiceTest {
         when(passwordEncoder.matches("wrongPassword", testUser.getPassword())).thenReturn(false);
 
         BusinessException exception = assertThrows(BusinessException.class,
-                () -> authService.changePassword(userId, "wrongPassword", "newPassword"));
+                () -> authService.changePassword(userId, "wrongPassword", "newPassword", httpRequest));
 
         assertEquals("INVALID_CURRENT_PASSWORD", exception.getErrorCode());
     }

@@ -166,6 +166,27 @@ public class AuthService {
     }
 
     @Transactional
+    public void deleteOwnAccount(User authenticatedUser, HttpServletRequest httpRequest) {
+        User user = userRepository.findById(authenticatedUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", authenticatedUser.getId()));
+
+        if (user.getRole() != User.UserRole.COLLECTOR && user.getRole() != User.UserRole.ESTABLISHMENT) {
+            throw new BusinessException("Only collector and establishment accounts can be deleted here", "ACCOUNT_DELETION_NOT_ALLOWED");
+        }
+        if (!Boolean.TRUE.equals(user.getIsActive())) {
+            throw new BusinessException("Account is already deactivated", "ACCOUNT_ALREADY_DELETED");
+        }
+
+        // Keep historical collection records and their foreign keys intact while revoking access.
+        user.setIsActive(false);
+        userRepository.save(user);
+        auditLogService.logDelete("USER", user.getId(), user,
+                "{\"email\":\"" + user.getEmail() + "\",\"role\":\"" + user.getRole() + "\"}",
+                getClientIp(httpRequest), httpRequest.getHeader("User-Agent"));
+        log.info("User account deactivated by owner: {}", user.getEmail());
+    }
+
+    @Transactional
     public AuthResponseDTO refreshToken(String refreshToken, HttpServletRequest httpRequest) {
         String ipAddress = getClientIp(httpRequest);
         String userAgent = httpRequest.getHeader("User-Agent");
