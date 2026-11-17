@@ -19,10 +19,9 @@ public class UserDTO {
     @Email(message = "Invalid email format")
     private String email;
 
-    @Size(min = 6, message = "Password must be at least 6 characters")
+    @Size(min = 8, message = "Password must be at least 8 characters")
     private String password;
 
-    @NotBlank(message = "CPF is required")
     @Pattern(regexp = "^\\d{11}$", message = "CPF must contain exactly 11 digits")
     private String cpf;
 

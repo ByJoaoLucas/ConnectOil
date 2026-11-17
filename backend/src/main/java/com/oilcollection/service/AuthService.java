@@ -107,12 +107,39 @@ public class AuthService {
         String ipAddress = getClientIp(httpRequest);
         String userAgent = httpRequest.getHeader("User-Agent");
 
+        User.UserRole role = request.getRole() != null ? request.getRole() : User.UserRole.COLLECTOR;
+
+        // Validate role-specific document requirements
+        if (role == User.UserRole.ESTABLISHMENT) {
+            if (request.getCnpj() == null || request.getCnpj().isBlank()) {
+                throw new BusinessException("CNPJ is required for establishment registration", "CNPJ_REQUIRED");
+            }
+            // Validate CNPJ format (basic check - 14 digits)
+            if (!request.getCnpj().matches("^\\d{14}$")) {
+                throw new BusinessException("CNPJ must contain exactly 14 digits", "INVALID_CNPJ");
+            }
+        } else if (role == User.UserRole.COLLECTOR || role == User.UserRole.CLIENT) {
+            if (request.getCpf() == null || request.getCpf().isBlank()) {
+                throw new BusinessException("CPF is required for collector/client registration", "CPF_REQUIRED");
+            }
+            // Validate CPF format (basic check - 11 digits)
+            if (!request.getCpf().matches("^\\d{11}$")) {
+                throw new BusinessException("CPF must contain exactly 11 digits", "INVALID_CPF");
+            }
+        }
+
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new BusinessException("Email already registered", "EMAIL_ALREADY_EXISTS");
         }
 
-        if (userRepository.existsByCpf(request.getCpf())) {
+        // Check CPF duplicate if provided
+        if (request.getCpf() != null && !request.getCpf().isBlank() && userRepository.existsByCpf(request.getCpf())) {
             throw new BusinessException("CPF already registered", "CPF_ALREADY_EXISTS");
+        }
+
+        // Check CNPJ duplicate if provided
+        if (request.getCnpj() != null && !request.getCnpj().isBlank() && userRepository.existsByCnpj(request.getCnpj())) {
+            throw new BusinessException("CNPJ already registered", "CNPJ_ALREADY_EXISTS");
         }
 
         // Validate password complexity
@@ -130,7 +157,7 @@ public class AuthService {
                 .establishmentCity(request.getEstablishmentCity())
                 .establishmentState(request.getEstablishmentState())
                 .establishmentZipCode(request.getEstablishmentZipCode())
-                .role(request.getRole() != null ? request.getRole() : User.UserRole.COLLECTOR)
+                .role(role)
                 .isActive(request.getIsActive() != null ? request.getIsActive() : true)
                 .passwordChangedAt(java.time.LocalDateTime.now())
                 .build();

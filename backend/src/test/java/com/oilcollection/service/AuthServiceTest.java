@@ -55,7 +55,8 @@ class AuthServiceTest {
 
     private User testUser;
     private AuthRequestDTO loginRequest;
-    private UserDTO registerRequest;
+    private UserDTO collectorRegisterRequest;
+    private UserDTO establishmentRegisterRequest;
 
     @BeforeEach
     void setUp() {
@@ -81,12 +82,24 @@ class AuthServiceTest {
         loginRequest.setEmail("test@example.com");
         loginRequest.setPassword("password123");
 
-        registerRequest = new UserDTO();
-        registerRequest.setName("New User");
-        registerRequest.setEmail("new@example.com");
-        registerRequest.setPassword("password123");
-        registerRequest.setCpf("98765432109");
-        registerRequest.setRole(User.UserRole.COLLECTOR);
+        collectorRegisterRequest = new UserDTO();
+        collectorRegisterRequest.setName("New Collector");
+        collectorRegisterRequest.setEmail("collector@example.com");
+        collectorRegisterRequest.setPassword("password123");
+        collectorRegisterRequest.setCpf("98765432109");
+        collectorRegisterRequest.setRole(User.UserRole.COLLECTOR);
+
+        establishmentRegisterRequest = new UserDTO();
+        establishmentRegisterRequest.setName("New Establishment");
+        establishmentRegisterRequest.setEmail("establishment@example.com");
+        establishmentRegisterRequest.setPassword("password123");
+        establishmentRegisterRequest.setCnpj("12345678000199");
+        establishmentRegisterRequest.setRole(User.UserRole.ESTABLISHMENT);
+        establishmentRegisterRequest.setEstablishmentName("Test Establishment");
+        establishmentRegisterRequest.setEstablishmentAddress("Rua Teste, 123");
+        establishmentRegisterRequest.setEstablishmentCity("São Paulo");
+        establishmentRegisterRequest.setEstablishmentState("SP");
+        establishmentRegisterRequest.setEstablishmentZipCode("01234567");
     }
 
     @Test
@@ -109,16 +122,33 @@ class AuthServiceTest {
     }
 
     @Test
-    void register_Success() {
-        when(userRepository.existsByEmail(registerRequest.getEmail())).thenReturn(false);
-        when(userRepository.existsByCpf(registerRequest.getCpf())).thenReturn(false);
-        when(passwordEncoder.encode(registerRequest.getPassword())).thenReturn("encodedPassword");
+    void register_Collector_Success() {
+        when(userRepository.existsByEmail(collectorRegisterRequest.getEmail())).thenReturn(false);
+        when(userRepository.existsByCpf(collectorRegisterRequest.getCpf())).thenReturn(false);
+        when(passwordEncoder.encode(collectorRegisterRequest.getPassword())).thenReturn("encodedPassword");
         when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(jwtTokenProvider.generateToken(any())).thenReturn("access-token");
-        when(jwtTokenProvider.generateRefreshToken(registerRequest.getEmail())).thenReturn("refresh-token");
+        when(jwtTokenProvider.generateRefreshToken(collectorRegisterRequest.getEmail())).thenReturn("refresh-token");
         when(jwtTokenProvider.getJwtProperties()).thenReturn(new com.oilcollection.security.JwtProperties());
 
-        AuthResponseDTO response = authService.register(registerRequest, httpRequest);
+        AuthResponseDTO response = authService.register(collectorRegisterRequest, httpRequest);
+
+        assertNotNull(response);
+        assertEquals("access-token", response.getAccessToken());
+        verify(userRepository).save(any());
+    }
+
+    @Test
+    void register_Establishment_Success() {
+        when(userRepository.existsByEmail(establishmentRegisterRequest.getEmail())).thenReturn(false);
+        when(userRepository.existsByCnpj(establishmentRegisterRequest.getCnpj())).thenReturn(false);
+        when(passwordEncoder.encode(establishmentRegisterRequest.getPassword())).thenReturn("encodedPassword");
+        when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(jwtTokenProvider.generateToken(any())).thenReturn("access-token");
+        when(jwtTokenProvider.generateRefreshToken(establishmentRegisterRequest.getEmail())).thenReturn("refresh-token");
+        when(jwtTokenProvider.getJwtProperties()).thenReturn(new com.oilcollection.security.JwtProperties());
+
+        AuthResponseDTO response = authService.register(establishmentRegisterRequest, httpRequest);
 
         assertNotNull(response);
         assertEquals("access-token", response.getAccessToken());
@@ -127,23 +157,74 @@ class AuthServiceTest {
 
     @Test
     void register_EmailAlreadyExists_ThrowsException() {
-        when(userRepository.existsByEmail(registerRequest.getEmail())).thenReturn(true);
+        when(userRepository.existsByEmail(collectorRegisterRequest.getEmail())).thenReturn(true);
 
         BusinessException exception = assertThrows(BusinessException.class,
-                () -> authService.register(registerRequest, httpRequest));
+                () -> authService.register(collectorRegisterRequest, httpRequest));
 
         assertEquals("EMAIL_ALREADY_EXISTS", exception.getErrorCode());
     }
 
     @Test
     void register_CpfAlreadyExists_ThrowsException() {
-        when(userRepository.existsByEmail(registerRequest.getEmail())).thenReturn(false);
-        when(userRepository.existsByCpf(registerRequest.getCpf())).thenReturn(true);
+        when(userRepository.existsByEmail(collectorRegisterRequest.getEmail())).thenReturn(false);
+        when(userRepository.existsByCpf(collectorRegisterRequest.getCpf())).thenReturn(true);
 
         BusinessException exception = assertThrows(BusinessException.class,
-                () -> authService.register(registerRequest, httpRequest));
+                () -> authService.register(collectorRegisterRequest, httpRequest));
 
         assertEquals("CPF_ALREADY_EXISTS", exception.getErrorCode());
+    }
+
+    @Test
+    void register_CnpjAlreadyExists_ThrowsException() {
+        when(userRepository.existsByEmail(establishmentRegisterRequest.getEmail())).thenReturn(false);
+        when(userRepository.existsByCnpj(establishmentRegisterRequest.getCnpj())).thenReturn(true);
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> authService.register(establishmentRegisterRequest, httpRequest));
+
+        assertEquals("CNPJ_ALREADY_EXISTS", exception.getErrorCode());
+    }
+
+    @Test
+    void register_EstablishmentWithoutCnpj_ThrowsException() {
+        establishmentRegisterRequest.setCnpj(null);
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> authService.register(establishmentRegisterRequest, httpRequest));
+
+        assertEquals("CNPJ_REQUIRED", exception.getErrorCode());
+    }
+
+    @Test
+    void register_CollectorWithoutCpf_ThrowsException() {
+        collectorRegisterRequest.setCpf(null);
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> authService.register(collectorRegisterRequest, httpRequest));
+
+        assertEquals("CPF_REQUIRED", exception.getErrorCode());
+    }
+
+    @Test
+    void register_EstablishmentWithInvalidCnpjFormat_ThrowsException() {
+        establishmentRegisterRequest.setCnpj("123"); // invalid format
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> authService.register(establishmentRegisterRequest, httpRequest));
+
+        assertEquals("INVALID_CNPJ", exception.getErrorCode());
+    }
+
+    @Test
+    void register_CollectorWithInvalidCpfFormat_ThrowsException() {
+        collectorRegisterRequest.setCpf("123"); // invalid format
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> authService.register(collectorRegisterRequest, httpRequest));
+
+        assertEquals("INVALID_CPF", exception.getErrorCode());
     }
 
     @Test
