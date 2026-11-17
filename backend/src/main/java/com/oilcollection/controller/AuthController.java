@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.access.prepost.PreAuthorize;
 import com.oilcollection.model.User;
 import org.springframework.web.bind.annotation.*;
 
@@ -59,5 +60,15 @@ public class AuthController {
             HttpServletRequest httpRequest) {
         authService.changePassword(user.getId(), currentPassword, newPassword, httpRequest);
         return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/account")
+    @PreAuthorize("hasAnyRole('COLLECTOR', 'ESTABLISHMENT')")
+    @Operation(summary = "Delete the authenticated collector or establishment account")
+    public ResponseEntity<Void> deleteOwnAccount(
+            @AuthenticationPrincipal User user,
+            HttpServletRequest httpRequest) {
+        authService.deleteOwnAccount(user, httpRequest);
+        return ResponseEntity.noContent().build();
     }
 }
