@@ -29,7 +29,7 @@ public class ProductController {
     private final ProductService productService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR', 'ESTABLISHMENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR', 'ESTABLISHMENT')")
     @Operation(summary = "Get all products with pagination")
     public ResponseEntity<Page<ProductDTO>> getAllProducts(
             @PageableDefault(size = 20) Pageable pageable) {
@@ -37,35 +37,35 @@ public class ProductController {
     }
 
     @GetMapping("/list")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR', 'ESTABLISHMENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR', 'ESTABLISHMENT')")
     @Operation(summary = "Get all products as list")
     public ResponseEntity<List<ProductDTO>> getAllProductsList() {
         return ResponseEntity.ok(productService.getAllProducts());
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR', 'ESTABLISHMENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR', 'ESTABLISHMENT')")
     @Operation(summary = "Get product by ID")
     public ResponseEntity<ProductDTO> getProductById(@PathVariable UUID id) {
         return ResponseEntity.ok(productService.getProductById(id));
     }
 
     @GetMapping("/available")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR', 'ESTABLISHMENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR', 'ESTABLISHMENT')")
     @Operation(summary = "Get available products with stock")
     public ResponseEntity<List<ProductDTO>> getAvailableProducts() {
         return ResponseEntity.ok(productService.getAvailableProducts());
     }
 
     @GetMapping("/category/{category}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR', 'ESTABLISHMENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR', 'ESTABLISHMENT')")
     @Operation(summary = "Get products by category")
     public ResponseEntity<List<ProductDTO>> getProductsByCategory(@PathVariable String category) {
         return ResponseEntity.ok(productService.getProductsByCategory(category));
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Create new product")
     public ResponseEntity<ProductDTO> createProduct(
             @Valid @RequestBody ProductDTO request,
@@ -77,7 +77,7 @@ public class ProductController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Update product")
     public ResponseEntity<ProductDTO> updateProduct(
             @PathVariable UUID id,
@@ -90,7 +90,7 @@ public class ProductController {
     }
 
     @PutMapping("/{id}/stock")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Update product stock")
     public ResponseEntity<ProductDTO> updateStock(
             @PathVariable UUID id,

@@ -10,7 +10,7 @@ export interface User {
   establishmentCity?: string;
   establishmentState?: string;
   establishmentZipCode?: string;
-  role: 'ADMIN' | 'MANAGER' | 'COLLECTOR' | 'CLIENT' | 'ESTABLISHMENT';
+  role: 'ADMIN' | 'COLLECTOR' | 'CLIENT' | 'ESTABLISHMENT';
   isActive: boolean;
   failedLoginAttempts?: number;
   lockedUntil?: string;
@@ -198,7 +198,7 @@ export interface ApiError {
 
 export type PointStatus = 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE' | 'FULL' | 'PENDING_APPROVAL';
 export type ScheduleStatus = 'PENDING' | 'CONFIRMED' | 'ASSIGNED' | 'EN_ROUTE' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'RESCHEDULED';
-export type UserRole = 'ADMIN' | 'MANAGER' | 'COLLECTOR' | 'CLIENT' | 'ESTABLISHMENT';
+export type UserRole = 'ADMIN' | 'COLLECTOR' | 'CLIENT' | 'ESTABLISHMENT';
 
 export const STATUS_LABELS: Record<PointStatus, string> = {
   ACTIVE: 'Ativo',
@@ -221,7 +221,6 @@ export const SCHEDULE_STATUS_LABELS: Record<ScheduleStatus, string> = {
 
 export const USER_ROLE_LABELS: Record<UserRole, string> = {
   ADMIN: 'Administrador',
-  MANAGER: 'Gerente',
   COLLECTOR: 'Coletor',
   CLIENT: 'Cliente',
   ESTABLISHMENT: 'Estabelecimento',

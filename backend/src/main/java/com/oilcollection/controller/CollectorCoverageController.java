@@ -28,7 +28,7 @@ public class CollectorCoverageController {
     private final CollectorCoverageService coverageService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get all collector coverage areas with pagination")
     public ResponseEntity<Page<CollectorCoverageDTO>> getAllCoverage(
             @PageableDefault(size = 20) Pageable pageable) {
@@ -36,28 +36,28 @@ public class CollectorCoverageController {
     }
 
     @GetMapping("/list")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get all collector coverage areas as list")
     public ResponseEntity<List<CollectorCoverageDTO>> getAllCoverageList() {
         return ResponseEntity.ok(coverageService.getAllCoverage());
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Get coverage by ID")
     public ResponseEntity<CollectorCoverageDTO> getCoverageById(@PathVariable UUID id) {
         return ResponseEntity.ok(coverageService.getCoverageById(id));
     }
 
     @GetMapping("/collector/{collectorId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Get coverage by collector")
     public ResponseEntity<List<CollectorCoverageDTO>> getCoverageByCollector(@PathVariable UUID collectorId) {
         return ResponseEntity.ok(coverageService.getCoverageByCollector(collectorId));
     }
 
     @GetMapping("/city/{city}/state/{state}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Get coverage by city and state")
     public ResponseEntity<List<CollectorCoverageDTO>> getCoverageByCityAndState(
             @PathVariable String city,
@@ -66,14 +66,14 @@ public class CollectorCoverageController {
     }
 
     @GetMapping("/collector/{collectorId}/active")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Get active coverage for collector")
     public ResponseEntity<List<CollectorCoverageDTO>> getActiveCoverageByCollector(@PathVariable UUID collectorId) {
         return ResponseEntity.ok(coverageService.getActiveCoverageByCollector(collectorId));
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Create new collector coverage")
     public ResponseEntity<CollectorCoverageDTO> createCoverage(
             @Valid @RequestBody CollectorCoverageDTO request,
@@ -85,7 +85,7 @@ public class CollectorCoverageController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Update collector coverage")
     public ResponseEntity<CollectorCoverageDTO> updateCoverage(
             @PathVariable UUID id,

@@ -306,12 +306,12 @@ setValue('cpf', initialData.cpf || initialData.cnpj || '');
 **Adição de ESTABLISHMENT nos papéis de navegação:**
 ```typescript
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'MANAGER', 'COLLECTOR', 'CLIENT', 'ESTABLISHMENT'] },
-  { name: 'Pontos de Coleta', href: '/collection-points', icon: MapPin, roles: ['ADMIN', 'MANAGER', 'COLLECTOR', 'CLIENT', 'ESTABLISHMENT'] },
-  { name: 'Agendamentos', href: '/schedules', icon: Calendar, roles: ['ADMIN', 'MANAGER', 'COLLECTOR', 'ESTABLISHMENT'] },
-  { name: 'Registros', href: '/records', icon: Package, roles: ['ADMIN', 'MANAGER', 'COLLECTOR', 'ESTABLISHMENT'] },
-  { name: 'Relatórios', href: '/reports', icon: BarChart3, roles: ['ADMIN', 'MANAGER'] },
-  { name: 'Usuários', href: '/users', icon: Users, roles: ['ADMIN', 'MANAGER'] },
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'COLLECTOR', 'CLIENT', 'ESTABLISHMENT'] },
+  { name: 'Pontos de Coleta', href: '/collection-points', icon: MapPin, roles: ['ADMIN', 'COLLECTOR', 'CLIENT', 'ESTABLISHMENT'] },
+  { name: 'Agendamentos', href: '/schedules', icon: Calendar, roles: ['ADMIN', 'COLLECTOR', 'ESTABLISHMENT'] },
+  { name: 'Registros', href: '/records', icon: Package, roles: ['ADMIN', 'COLLECTOR', 'ESTABLISHMENT'] },
+  { name: 'Relatórios', href: '/reports', icon: BarChart3, roles: ['ADMIN'] },
+  { name: 'Usuários', href: '/users', icon: Users, roles: ['ADMIN'] },
 ];
 ```
 
@@ -335,7 +335,7 @@ export interface User {
   cpf?: string;      // Opcional para estabelecimentos
   cnpj?: string;     // Opcional para coletores
   // ...
-  role: 'ADMIN' | 'MANAGER' | 'COLLECTOR' | 'CLIENT' | 'ESTABLISHMENT';
+  role: 'ADMIN' | 'COLLECTOR' | 'CLIENT' | 'ESTABLISHMENT';
   // ...
 }
 
@@ -357,7 +357,6 @@ export interface RegisterData {
 // Labels em português
 export const USER_ROLE_LABELS: Record<UserRole, string> = {
   ADMIN: 'Administrador',
-  MANAGER: 'Gerente',
   COLLECTOR: 'Coletor',
   CLIENT: 'Cliente',
   ESTABLISHMENT: 'Estabelecimento',
@@ -445,7 +444,7 @@ coverage
 
 | Categoria | Testes | Códigos de Erro Validados |
 |-----------|--------|---------------------------|
-| **Validação de Papéis** | 4 | `INVALID_ROLE` para MANAGER, CLIENT, null, ADMIN (bootstrap) |
+| **Validação de Papéis** | 3 | `INVALID_ROLE` para CLIENT, null, ADMIN (bootstrap) |
 | **Campos Obrigatórios Estabelecimento** | 4 | `ESTABLISHMENT_NAME_REQUIRED`, `ESTABLISHMENT_ADDRESS_REQUIRED` (null e blank) |
 | **Complexidade de Senha** | 5 | `WEAK_PASSWORD` para: sem maiúscula, sem minúscula, sem número, sem especial, muito curta |
 | **Sucesso** | 2 | Registro COLLECTOR e ESTABLISHMENT com dados válidos |
@@ -541,7 +540,7 @@ JWT_REFRESH_EXPIRATION_MS=604800000
 | Senha sem minúscula | Checklist item vermelho |
 | Senha sem número | Checklist item vermelho |
 | Senha sem especial | Checklist item vermelho |
-| Papel inválido (ex: MANAGER via API) | "Tipo de conta inválido" (INVALID_ROLE) |
+| Papel inválido (ex: CLIENT via API) | "Tipo de conta inválido" (INVALID_ROLE) |
 
 #### D. Login e Navegação ESTABLISHMENT
 1. Faça login com conta de estabelecimento

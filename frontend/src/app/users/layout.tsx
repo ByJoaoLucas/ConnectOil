@@ -12,7 +12,7 @@ export default function UsersLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push('/login');
-    } else if (!isLoading && isAuthenticated && user?.role !== 'ADMIN' && user?.role !== 'MANAGER') {
+    } else if (!isLoading && isAuthenticated && user?.role !== 'ADMIN') {
       router.push('/dashboard');
     }
   }, [isAuthenticated, isLoading, user, router]);
@@ -25,7 +25,7 @@ export default function UsersLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  if (!isAuthenticated || (user?.role !== 'ADMIN' && user?.role !== 'MANAGER')) {
+  if (!isAuthenticated || user?.role !== 'ADMIN') {
     return null;
   }
 

@@ -43,7 +43,7 @@ const userSchema = z.object({
   cpf: z.string().regex(/^\d{3}\.?\d{3}\.?\d{3}-?\d{2}$/, 'CPF inválido (formato: 000.000.000-00)'),
   phoneNumber: z.string().optional(),
   password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres').optional().or(z.literal('')),
-  role: z.enum(['ADMIN', 'MANAGER', 'COLLECTOR', 'CLIENT']),
+  role: z.enum(['ADMIN', 'COLLECTOR', 'CLIENT']),
 });
 
 export default function UsersPage() {
@@ -194,7 +194,6 @@ export default function UsersPage() {
               >
                 <option value="ALL">Todos os perfis</option>
                 <option value="ADMIN">Administrador</option>
-                <option value="MANAGER">Gerente</option>
                 <option value="COLLECTOR">Coletor</option>
                 <option value="CLIENT">Cliente</option>
               </select>
@@ -258,7 +257,6 @@ export default function UsersPage() {
                         <td>
                           <span className={`badge ${
                             user.role === 'ADMIN' ? 'badge-purple' :
-                            user.role === 'MANAGER' ? 'badge-blue' :
                             user.role === 'COLLECTOR' ? 'badge-green' : 'badge-gray'
                           }`}>
                             {USER_ROLE_LABELS[user.role as keyof typeof USER_ROLE_LABELS]}
@@ -413,7 +411,6 @@ function UserForm({
           <select {...register('role')} className={`input ${errors.role ? 'input-error' : ''}`}>
             <option value="CLIENT">Cliente</option>
             <option value="COLLECTOR">Coletor</option>
-            <option value="MANAGER">Gerente</option>
             <option value="ADMIN">Administrador</option>
           </select>
           {errors.role && <p className="error-message">{errors.role.message}</p>}

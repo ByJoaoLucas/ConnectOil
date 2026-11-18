@@ -21,12 +21,12 @@ import {
 } from 'lucide-react';
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'MANAGER', 'COLLECTOR', 'CLIENT', 'ESTABLISHMENT'] },
-  { name: 'Pontos de Coleta', href: '/collection-points', icon: MapPin, roles: ['ADMIN', 'MANAGER', 'COLLECTOR', 'CLIENT', 'ESTABLISHMENT'] },
-  { name: 'Agendamentos', href: '/schedules', icon: Calendar, roles: ['ADMIN', 'MANAGER', 'COLLECTOR', 'ESTABLISHMENT'] },
-  { name: 'Registros', href: '/records', icon: Package, roles: ['ADMIN', 'MANAGER', 'COLLECTOR', 'ESTABLISHMENT'] },
-  { name: 'Relatórios', href: '/reports', icon: BarChart3, roles: ['ADMIN', 'MANAGER'] },
-  { name: 'Usuários', href: '/users', icon: Users, roles: ['ADMIN', 'MANAGER'] },
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'COLLECTOR', 'CLIENT', 'ESTABLISHMENT'] },
+  { name: 'Pontos de Coleta', href: '/collection-points', icon: MapPin, roles: ['ADMIN', 'COLLECTOR', 'CLIENT', 'ESTABLISHMENT'] },
+  { name: 'Agendamentos', href: '/schedules', icon: Calendar, roles: ['ADMIN', 'COLLECTOR', 'ESTABLISHMENT'] },
+  { name: 'Registros', href: '/records', icon: Package, roles: ['ADMIN', 'COLLECTOR', 'ESTABLISHMENT'] },
+  { name: 'Relatórios', href: '/reports', icon: BarChart3, roles: ['ADMIN'] },
+  { name: 'Usuários', href: '/users', icon: Users, roles: ['ADMIN'] },
 ];
 
 interface LayoutProps {

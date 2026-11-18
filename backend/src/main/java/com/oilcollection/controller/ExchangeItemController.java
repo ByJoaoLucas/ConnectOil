@@ -25,14 +25,14 @@ public class ExchangeItemController {
     private final ExchangeItemService exchangeItemService;
 
     @GetMapping("/schedule/{scheduleId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR', 'ESTABLISHMENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR', 'ESTABLISHMENT')")
     @Operation(summary = "Get exchange items by schedule")
     public ResponseEntity<List<ExchangeItemDTO>> getBySchedule(@PathVariable UUID scheduleId) {
         return ResponseEntity.ok(exchangeItemService.getByScheduleId(scheduleId));
     }
 
     @PostMapping("/schedule/{scheduleId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Create exchange items for schedule")
     public ResponseEntity<List<ExchangeItemDTO>> createForSchedule(
             @PathVariable UUID scheduleId,
@@ -45,7 +45,7 @@ public class ExchangeItemController {
     }
 
     @DeleteMapping("/schedule/{scheduleId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Delete all exchange items for schedule")
     public ResponseEntity<Void> deleteBySchedule(
             @PathVariable UUID scheduleId,

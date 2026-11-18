@@ -307,20 +307,6 @@ class AuthServiceTest {
     }
 
     @Test
-    void register_ManagerRole_ThrowsInvalidRole() {
-        UserDTO request = new UserDTO();
-        request.setName("Manager User");
-        request.setEmail("manager@example.com");
-        request.setPassword("password123");
-        request.setRole(User.UserRole.MANAGER);
-
-        BusinessException exception = assertThrows(BusinessException.class,
-                () -> authService.register(request, httpRequest));
-
-        assertEquals("INVALID_ROLE", exception.getErrorCode());
-    }
-
-    @Test
     void register_ClientRole_ThrowsInvalidRole() {
         UserDTO request = new UserDTO();
         request.setName("Client User");

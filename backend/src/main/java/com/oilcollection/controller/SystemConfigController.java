@@ -43,14 +43,14 @@ public class SystemConfigController {
     }
 
     @GetMapping("/{key}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get configuration by key")
     public ResponseEntity<SystemConfigDTO> getConfigByKey(@PathVariable String key) {
         return ResponseEntity.ok(systemConfigService.getConfigByKey(key));
     }
 
     @GetMapping("/value/{key}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get configuration value by key")
     public ResponseEntity<String> getConfigValue(@PathVariable String key) {
         return ResponseEntity.ok(systemConfigService.getConfigValue(key));
@@ -83,21 +83,21 @@ public class SystemConfigController {
 
     // Convenience endpoints for common configs
     @GetMapping("/price/base-oil")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Get base oil price per liter")
     public ResponseEntity<java.math.BigDecimal> getBaseOilPrice() {
         return ResponseEntity.ok(systemConfigService.getBaseOilPricePerLiter());
     }
 
     @GetMapping("/threshold/discrepancy")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get discrepancy threshold percentage")
     public ResponseEntity<Integer> getDiscrepancyThreshold() {
         return ResponseEntity.ok(systemConfigService.getDiscrepancyThresholdPercentage());
     }
 
     @GetMapping("/cancellation/hours-before")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get cancellation hours before schedule")
     public ResponseEntity<Integer> getCancellationHours() {
         return ResponseEntity.ok(systemConfigService.getCancellationHoursBefore());
