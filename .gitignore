@@ -6,6 +6,7 @@ backend/.mvn/wrapper/maven-wrapper.jar
 # Build outputs
 frontend/dist/
 frontend/build/
+frontend/.next/
 backend/target/*.jar
 backend/target/*.war
 backend/target/classes/

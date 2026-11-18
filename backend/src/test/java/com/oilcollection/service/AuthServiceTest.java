@@ -279,4 +279,192 @@ class AuthServiceTest {
 
         assertEquals("INVALID_CURRENT_PASSWORD", exception.getErrorCode());
     }
+
+    // ===== ROLE VALIDATION TESTS =====
+
+    @Test
+    void register_AdminRole_Accepted() {
+        // TODO: remover junto com o ADMIN do cadastro público
+        UserDTO adminRequest = new UserDTO();
+        adminRequest.setName("Admin User");
+        adminRequest.setEmail("admin@example.com");
+        adminRequest.setPassword("password123");
+        adminRequest.setRole(User.UserRole.ADMIN);
+        // No CPF/CNPJ required for ADMIN
+
+        when(userRepository.existsByEmail(adminRequest.getEmail())).thenReturn(false);
+        when(passwordEncoder.encode(adminRequest.getPassword())).thenReturn("encodedPassword");
+        when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(jwtTokenProvider.generateToken(any())).thenReturn("access-token");
+        when(jwtTokenProvider.generateRefreshToken(adminRequest.getEmail())).thenReturn("refresh-token");
+        when(jwtTokenProvider.getJwtProperties()).thenReturn(new com.oilcollection.security.JwtProperties());
+
+        AuthResponseDTO response = authService.register(adminRequest, httpRequest);
+
+        assertNotNull(response);
+        assertEquals("access-token", response.getAccessToken());
+        verify(userRepository).save(any());
+    }
+
+    @Test
+    void register_ManagerRole_ThrowsInvalidRole() {
+        UserDTO request = new UserDTO();
+        request.setName("Manager User");
+        request.setEmail("manager@example.com");
+        request.setPassword("password123");
+        request.setRole(User.UserRole.MANAGER);
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> authService.register(request, httpRequest));
+
+        assertEquals("INVALID_ROLE", exception.getErrorCode());
+    }
+
+    @Test
+    void register_ClientRole_ThrowsInvalidRole() {
+        UserDTO request = new UserDTO();
+        request.setName("Client User");
+        request.setEmail("client@example.com");
+        request.setPassword("password123");
+        request.setRole(User.UserRole.CLIENT);
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> authService.register(request, httpRequest));
+
+        assertEquals("INVALID_ROLE", exception.getErrorCode());
+    }
+
+    @Test
+    void register_NullRole_ThrowsInvalidRole() {
+        UserDTO request = new UserDTO();
+        request.setName("No Role User");
+        request.setEmail("norole@example.com");
+        request.setPassword("password123");
+        request.setRole(null);
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> authService.register(request, httpRequest));
+
+        assertEquals("INVALID_ROLE", exception.getErrorCode());
+    }
+
+    // ===== ESTABLISHMENT SPECIFIC FIELD VALIDATION TESTS =====
+
+    @Test
+    void register_EstablishmentWithoutName_ThrowsException() {
+        establishmentRegisterRequest.setEstablishmentName(null);
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> authService.register(establishmentRegisterRequest, httpRequest));
+
+        assertEquals("ESTABLISHMENT_NAME_REQUIRED", exception.getErrorCode());
+    }
+
+    @Test
+    void register_EstablishmentWithoutAddress_ThrowsException() {
+        establishmentRegisterRequest.setEstablishmentAddress(null);
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> authService.register(establishmentRegisterRequest, httpRequest));
+
+        assertEquals("ESTABLISHMENT_ADDRESS_REQUIRED", exception.getErrorCode());
+    }
+
+    @Test
+    void register_EstablishmentWithBlankName_ThrowsException() {
+        establishmentRegisterRequest.setEstablishmentName("   ");
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> authService.register(establishmentRegisterRequest, httpRequest));
+
+        assertEquals("ESTABLISHMENT_NAME_REQUIRED", exception.getErrorCode());
+    }
+
+    @Test
+    void register_EstablishmentWithBlankAddress_ThrowsException() {
+        establishmentRegisterRequest.setEstablishmentAddress("   ");
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> authService.register(establishmentRegisterRequest, httpRequest));
+
+        assertEquals("ESTABLISHMENT_ADDRESS_REQUIRED", exception.getErrorCode());
+    }
+
+    // ===== PASSWORD COMPLEXITY TESTS =====
+
+    @Test
+    void register_WeakPassword_NoUppercase_ThrowsException() {
+        lenient().when(systemConfigService.getPasswordRequireUppercase()).thenReturn(true);
+        lenient().when(systemConfigService.getPasswordRequireLowercase()).thenReturn(false);
+        lenient().when(systemConfigService.getPasswordRequireNumber()).thenReturn(false);
+        lenient().when(systemConfigService.getPasswordRequireSpecial()).thenReturn(false);
+
+        collectorRegisterRequest.setPassword("password123"); // no uppercase
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> authService.register(collectorRegisterRequest, httpRequest));
+
+        assertEquals("WEAK_PASSWORD", exception.getErrorCode());
+    }
+
+    @Test
+    void register_WeakPassword_NoLowercase_ThrowsException() {
+        lenient().when(systemConfigService.getPasswordRequireUppercase()).thenReturn(false);
+        lenient().when(systemConfigService.getPasswordRequireLowercase()).thenReturn(true);
+        lenient().when(systemConfigService.getPasswordRequireNumber()).thenReturn(false);
+        lenient().when(systemConfigService.getPasswordRequireSpecial()).thenReturn(false);
+
+        collectorRegisterRequest.setPassword("PASSWORD123"); // no lowercase
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> authService.register(collectorRegisterRequest, httpRequest));
+
+        assertEquals("WEAK_PASSWORD", exception.getErrorCode());
+    }
+
+    @Test
+    void register_WeakPassword_NoNumber_ThrowsException() {
+        lenient().when(systemConfigService.getPasswordRequireUppercase()).thenReturn(false);
+        lenient().when(systemConfigService.getPasswordRequireLowercase()).thenReturn(false);
+        lenient().when(systemConfigService.getPasswordRequireNumber()).thenReturn(true);
+        lenient().when(systemConfigService.getPasswordRequireSpecial()).thenReturn(false);
+
+        collectorRegisterRequest.setPassword("Password"); // no number
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> authService.register(collectorRegisterRequest, httpRequest));
+
+        assertEquals("WEAK_PASSWORD", exception.getErrorCode());
+    }
+
+    @Test
+    void register_WeakPassword_NoSpecialChar_ThrowsException() {
+        lenient().when(systemConfigService.getPasswordRequireUppercase()).thenReturn(false);
+        lenient().when(systemConfigService.getPasswordRequireLowercase()).thenReturn(false);
+        lenient().when(systemConfigService.getPasswordRequireNumber()).thenReturn(false);
+        lenient().when(systemConfigService.getPasswordRequireSpecial()).thenReturn(true);
+
+        collectorRegisterRequest.setPassword("Password123"); // no special char
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> authService.register(collectorRegisterRequest, httpRequest));
+
+        assertEquals("WEAK_PASSWORD", exception.getErrorCode());
+    }
+
+    @Test
+    void register_WeakPassword_TooShort_ThrowsException() {
+        lenient().when(systemConfigService.getPasswordMinLength()).thenReturn(8);
+        lenient().when(systemConfigService.getPasswordRequireUppercase()).thenReturn(false);
+        lenient().when(systemConfigService.getPasswordRequireLowercase()).thenReturn(false);
+        lenient().when(systemConfigService.getPasswordRequireNumber()).thenReturn(false);
+        lenient().when(systemConfigService.getPasswordRequireSpecial()).thenReturn(false);
+
+        collectorRegisterRequest.setPassword("Pass1"); // less than 8 chars
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> authService.register(collectorRegisterRequest, httpRequest));
+
+        assertEquals("WEAK_PASSWORD", exception.getErrorCode());
+    }
 }
