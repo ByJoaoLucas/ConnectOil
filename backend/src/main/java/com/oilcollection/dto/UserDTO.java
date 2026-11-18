@@ -25,7 +25,7 @@ public class UserDTO {
     @Pattern(regexp = "^\\d{11}$", message = "CPF must contain exactly 11 digits")
     private String cpf;
 
-    @Pattern(regexp = "^\\d{14}$", message = "CNPJ must contain exactly 14 digits")
+    @Pattern(regexp = "^[A-Z0-9]{12}[0-9]{2}$", message = "CNPJ must contain 12 alphanumeric characters followed by 2 digits")
     private String cnpj;
 
     @Pattern(regexp = "^\\+?[1-9]\\d{1,14}$", message = "Invalid phone number format")

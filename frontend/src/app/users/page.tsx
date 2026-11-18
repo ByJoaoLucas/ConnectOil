@@ -65,7 +65,8 @@ export default function UsersPage() {
     const matchesSearch =
       user.name.toLowerCase().includes(search.toLowerCase()) ||
       user.email.toLowerCase().includes(search.toLowerCase()) ||
-      user.cpf.includes(search);
+      user.cpf?.includes(search) ||
+      user.cnpj?.includes(search);
     const matchesRole = roleFilter === 'ALL' || user.role === roleFilter;
     const matchesStatus =
       statusFilter === 'ALL' ||
@@ -253,7 +254,7 @@ export default function UsersPage() {
                           </div>
                         </td>
                         <td className="text-sm text-gray-600">{user.email}</td>
-                        <td className="text-sm text-gray-600 font-mono">{user.cpf}</td>
+                        <td className="text-sm text-gray-600 font-mono">{user.cpf || user.cnpj || '-'}</td>
                         <td>
                           <span className={`badge ${
                             user.role === 'ADMIN' ? 'badge-purple' :
@@ -365,7 +366,7 @@ function UserForm({
   if (initialData) {
     setValue('name', initialData.name);
     setValue('email', initialData.email);
-    setValue('cpf', initialData.cpf);
+    setValue('cpf', initialData.cpf || initialData.cnpj || '');
     setValue('phoneNumber', initialData.phoneNumber || '');
     setValue('role', initialData.role);
   }

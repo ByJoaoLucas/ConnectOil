@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { USER_ROLE_LABELS } from '@/types';
 import {
   LayoutDashboard,
   MapPin,
@@ -20,10 +21,10 @@ import {
 } from 'lucide-react';
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'MANAGER', 'COLLECTOR', 'CLIENT'] },
-  { name: 'Pontos de Coleta', href: '/collection-points', icon: MapPin, roles: ['ADMIN', 'MANAGER', 'COLLECTOR', 'CLIENT'] },
-  { name: 'Agendamentos', href: '/schedules', icon: Calendar, roles: ['ADMIN', 'MANAGER', 'COLLECTOR'] },
-  { name: 'Registros', href: '/records', icon: Package, roles: ['ADMIN', 'MANAGER', 'COLLECTOR'] },
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'MANAGER', 'COLLECTOR', 'CLIENT', 'ESTABLISHMENT'] },
+  { name: 'Pontos de Coleta', href: '/collection-points', icon: MapPin, roles: ['ADMIN', 'MANAGER', 'COLLECTOR', 'CLIENT', 'ESTABLISHMENT'] },
+  { name: 'Agendamentos', href: '/schedules', icon: Calendar, roles: ['ADMIN', 'MANAGER', 'COLLECTOR', 'ESTABLISHMENT'] },
+  { name: 'Registros', href: '/records', icon: Package, roles: ['ADMIN', 'MANAGER', 'COLLECTOR', 'ESTABLISHMENT'] },
   { name: 'Relatórios', href: '/reports', icon: BarChart3, roles: ['ADMIN', 'MANAGER'] },
   { name: 'Usuários', href: '/users', icon: Users, roles: ['ADMIN', 'MANAGER'] },
 ];
@@ -103,7 +104,7 @@ export function Layout({ children }: LayoutProps) {
               {sidebarOpen && (
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>
-                  <p className="text-xs text-gray-500 truncate capitalize">{user?.role.toLowerCase()}</p>
+                  <p className="text-xs text-gray-500 truncate">{user?.role ? USER_ROLE_LABELS[user.role as keyof typeof USER_ROLE_LABELS] : ''}</p>
                 </div>
               )}
               <button

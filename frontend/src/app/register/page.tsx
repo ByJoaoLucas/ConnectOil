@@ -17,6 +17,7 @@ const baseSchema = z.object({
   email: z.string().email('E-mail inválido'),
   password: z.string().min(8, 'Senha deve ter pelo menos 8 caracteres')
     .regex(/[A-Z]/, 'Senha deve conter pelo menos uma letra maiúscula')
+    .regex(/[a-z]/, 'Senha deve conter pelo menos uma letra minúscula')
     .regex(/[0-9]/, 'Senha deve conter pelo menos um número')
     .regex(/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/, 'Senha deve conter pelo menos um caractere especial'),
   confirmPassword: z.string(),
@@ -24,7 +25,13 @@ const baseSchema = z.object({
 });
 
 const collectorSchema = baseSchema.extend({
-  cpf: z.string().regex(/^\d{11}$/, 'CPF deve conter exatamente 11 dígitos'),
+  cpf: z.string().refine(
+    (val) => {
+      const clean = val.replace(/\D/g, '');
+      return /^\d{11}$/.test(clean);
+    },
+    { message: 'CPF deve conter exatamente 11 dígitos' }
+  ),
   cnpj: z.string().optional(),
   establishmentName: z.string().optional(),
   establishmentAddress: z.string().optional(),
@@ -37,7 +44,13 @@ const collectorSchema = baseSchema.extend({
 });
 
 const establishmentSchema = baseSchema.extend({
-  cnpj: z.string().regex(/^\d{14}$/, 'CNPJ deve conter exatamente 14 dígitos'),
+  cnpj: z.string().refine(
+    (val) => {
+      const clean = val.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+      return /^[A-Z0-9]{12}[0-9]{2}$/.test(clean);
+    },
+    { message: 'CNPJ deve conter 12 caracteres alfanuméricos seguidos de 2 dígitos numéricos' }
+  ),
   establishmentName: z.string().min(1, 'Nome do estabelecimento é obrigatório'),
   establishmentAddress: z.string().min(1, 'Endereço do estabelecimento é obrigatório'),
   establishmentCity: z.string().optional(),
@@ -102,7 +115,7 @@ export default function RegisterPage() {
     },
   });
 
-  const password = watch('password');
+  const password = watch('password') || '';
 
   const handleAccountTypeChange = (type: AccountType) => {
     setAccountType(type);
@@ -127,8 +140,10 @@ export default function RegisterPage() {
     try {
       const cleanPhoneNumber = data.phoneNumber ? data.phoneNumber.replace(/\D/g, '') : undefined;
       const cleanCpf = data.cpf ? data.cpf.replace(/\D/g, '') : undefined;
-      const cleanCnpj = data.cnpj ? data.cnpj.replace(/\D/g, '') : undefined;
+      // For CNPJ, keep letters and numbers, convert to uppercase (alphanumeric CNPJ support)
+      const cleanCnpj = data.cnpj ? data.cnpj.replace(/[^A-Za-z0-9]/g, '').toUpperCase() : undefined;
       const cleanZipCode = data.establishmentZipCode ? data.establishmentZipCode.replace(/\D/g, '') : undefined;
+      const cleanState = data.establishmentState ? data.establishmentState.toUpperCase() : undefined;
 
       const payload = {
         name: data.name,
@@ -142,7 +157,7 @@ export default function RegisterPage() {
           establishmentName: data.establishmentName,
           establishmentAddress: data.establishmentAddress,
           establishmentCity: data.establishmentCity,
-          establishmentState: data.establishmentState,
+          establishmentState: cleanState,
           establishmentZipCode: cleanZipCode,
         }),
       };
@@ -165,6 +180,7 @@ export default function RegisterPage() {
   const getPasswordRequirements = () => [
     { label: 'Mínimo 8 caracteres', met: password.length >= 8 },
     { label: 'Uma letra maiúscula', met: /[A-Z]/.test(password) },
+    { label: 'Uma letra minúscula', met: /[a-z]/.test(password) },
     { label: 'Um número', met: /[0-9]/.test(password) },
     { label: 'Um caractere especial', met: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password) },
   ];
@@ -215,12 +231,13 @@ export default function RegisterPage() {
             placeholder="00.000.000/0000-00"
             disabled={isLoading}
             onChange={(e) => {
-              const value = e.target.value.replace(/\D/g, '');
+              // Accept letters and numbers, convert letters to uppercase
+              const value = e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
               const formatted = value
-                .replace(/(\d{2})(\d)/, '$1.$2')
-                .replace(/(\d{3})(\d)/, '$1.$2')
-                .replace(/(\d{3})(\d)/, '$1/$2')
-                .replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+                .replace(/([A-Z0-9]{2})([A-Z0-9])/, '$1.$2')
+                .replace(/([A-Z0-9]{3})([A-Z0-9])/, '$1.$2')
+                .replace(/([A-Z0-9]{3})([A-Z0-9])/, '$1/$2')
+                .replace(/([A-Z0-9]{4})([A-Z0-9]{1,2})$/, '$1-$2');
               setValue('cnpj', formatted);
             }}
           />

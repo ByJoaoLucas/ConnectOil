@@ -127,9 +127,9 @@ public class AuthService {
             if (request.getCnpj() == null || request.getCnpj().isBlank()) {
                 throw new BusinessException("CNPJ is required for establishment registration", "CNPJ_REQUIRED");
             }
-            // Validate CNPJ format (basic check - 14 digits)
-            if (!request.getCnpj().matches("^\\d{14}$")) {
-                throw new BusinessException("CNPJ must contain exactly 14 digits", "INVALID_CNPJ");
+            // Validate CNPJ format (12 alphanumeric + 2 digits = 14 chars)
+            if (!request.getCnpj().matches("^[A-Z0-9]{12}[0-9]{2}$")) {
+                throw new BusinessException("CNPJ must contain 12 alphanumeric characters followed by 2 digits", "INVALID_CNPJ");
             }
             // Require establishment name
             if (request.getEstablishmentName() == null || request.getEstablishmentName().isBlank()) {
