@@ -2,7 +2,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  cpf: string;
+  cpf?: string;
   cnpj?: string;
   phoneNumber?: string;
   establishmentName?: string;
@@ -17,6 +17,21 @@ export interface User {
   passwordChangedAt?: string;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface RegisterData {
+  name: string;
+  email: string;
+  password: string;
+  cpf?: string;
+  cnpj?: string;
+  phoneNumber?: string;
+  establishmentName?: string;
+  establishmentAddress?: string;
+  establishmentCity?: string;
+  establishmentState?: string;
+  establishmentZipCode?: string;
+  role: 'COLLECTOR' | 'ESTABLISHMENT';
 }
 
 export interface AuthResponse {
