@@ -28,7 +28,7 @@ public class IncidentController {
     private final IncidentService incidentService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Get all incidents with pagination")
     public ResponseEntity<Page<IncidentDTO>> getAllIncidents(
             @PageableDefault(size = 20) Pageable pageable) {
@@ -36,35 +36,35 @@ public class IncidentController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Get incident by ID")
     public ResponseEntity<IncidentDTO> getIncidentById(@PathVariable UUID id) {
         return ResponseEntity.ok(incidentService.getIncidentById(id));
     }
 
     @GetMapping("/point/{pointId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Get incidents by collection point")
     public ResponseEntity<List<IncidentDTO>> getIncidentsByPoint(@PathVariable UUID pointId) {
         return ResponseEntity.ok(incidentService.getIncidentsByPoint(pointId));
     }
 
     @GetMapping("/schedule/{scheduleId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Get incidents by schedule")
     public ResponseEntity<List<IncidentDTO>> getIncidentsBySchedule(@PathVariable UUID scheduleId) {
         return ResponseEntity.ok(incidentService.getIncidentsBySchedule(scheduleId));
     }
 
     @GetMapping("/reporter/{reporterId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Get incidents by reporter")
     public ResponseEntity<List<IncidentDTO>> getIncidentsByReporter(@PathVariable UUID reporterId) {
         return ResponseEntity.ok(incidentService.getIncidentsByReporter(reporterId));
     }
 
     @GetMapping("/status/{status}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get incidents by status")
     public ResponseEntity<Page<IncidentDTO>> getIncidentsByStatus(
             @PathVariable String status,
@@ -73,7 +73,7 @@ public class IncidentController {
     }
 
     @GetMapping("/point/{pointId}/recent")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Get recent incidents by point")
     public ResponseEntity<List<IncidentDTO>> getRecentIncidentsByPoint(
             @PathVariable UUID pointId,
@@ -82,7 +82,7 @@ public class IncidentController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR', 'ESTABLISHMENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR', 'ESTABLISHMENT')")
     @Operation(summary = "Create new incident report")
     public ResponseEntity<IncidentDTO> createIncident(
             @Valid @RequestBody IncidentDTO request,
@@ -94,7 +94,7 @@ public class IncidentController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Update incident")
     public ResponseEntity<IncidentDTO> updateIncident(
             @PathVariable UUID id,
@@ -107,7 +107,7 @@ public class IncidentController {
     }
 
     @PutMapping("/{id}/resolve")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Resolve incident")
     public ResponseEntity<IncidentDTO> resolveIncident(
             @PathVariable UUID id,

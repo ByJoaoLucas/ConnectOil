@@ -112,7 +112,6 @@ export default function ProfilePage() {
               <p className="text-gray-500">{user?.email}</p>
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mt-1 ${
                 user?.role === 'ADMIN' ? 'bg-purple-100 text-purple-800' :
-                user?.role === 'MANAGER' ? 'bg-blue-100 text-blue-800' :
                 user?.role === 'COLLECTOR' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
               }`}>
                 {USER_ROLE_LABELS[user?.role as UserRole]}
@@ -212,7 +211,6 @@ export default function ProfilePage() {
                       disabled
                     >
                       <option value="ADMIN">Administrador</option>
-                      <option value="MANAGER">Gerente</option>
                       <option value="COLLECTOR">Coletor</option>
                       <option value="CLIENT">Cliente</option>
                     </select>

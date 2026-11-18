@@ -26,7 +26,7 @@ Implementação completa da user story de cadastro de estabelecimento, incluindo
 
 ## 🔧 Arquivos Modificados
 
-### 1. `backend/src/main/java/com/oilcollection/dto/UserDTO.java`
+### 1. `../backend/src/main/java/com/oilcollection/dto/UserDTO.java`
 
 **Mudanças:**
 - Removido `@NotBlank` do campo `cpf` (agora opcional para `ESTABLISHMENT`)
@@ -34,7 +34,7 @@ Implementação completa da user story de cadastro de estabelecimento, incluindo
 - Mantido `@Pattern` para CPF (`^\d{11}$`) e CNPJ (`^\d{14}$`)
 - Campos de endereço do estabelecimento já existiam: `establishmentName`, `establishmentAddress`, `establishmentCity`, `establishmentState`, `establishmentZipCode`
 
-### 2. `backend/src/main/java/com/oilcollection/service/AuthService.java`
+### 2. `../backend/src/main/java/com/oilcollection/service/AuthService.java`
 
 **Método `register()` reescrito com:**
 
@@ -58,7 +58,7 @@ INVALID_CNPJ        // Formato CNPJ inválido
 INVALID_CPF         // Formato CPF inválido
 ```
 
-### 3. `backend/src/test/java/com/oilcollection/service/AuthServiceTest.java`
+### 3. `../backend/src/test/java/com/oilcollection/service/AuthServiceTest.java`
 
 **6 novos testes adicionados:**
 

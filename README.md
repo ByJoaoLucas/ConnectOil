@@ -98,7 +98,7 @@ Sistema completo para gestão de pontos de coleta, agendamentos e registros de c
 
 ### Usuários e Autenticação
 - ✅ JWT Authentication (access token 24h, refresh token 7 dias)
-- ✅ Roles: ADMIN, MANAGER, COLLECTOR, CLIENT, ESTABLISHMENT
+- ✅ Roles: ADMIN, COLLECTOR, CLIENT, ESTABLISHMENT
 - ✅ Refresh token
 - ✅ Alteração de senha com validação de complexidade
 - ✅ Perfil do usuário

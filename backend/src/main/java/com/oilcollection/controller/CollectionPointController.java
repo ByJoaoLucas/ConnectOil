@@ -30,7 +30,7 @@ public class CollectionPointController {
     private final CollectionPointService pointService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR', 'CLIENT', 'ESTABLISHMENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR', 'CLIENT', 'ESTABLISHMENT')")
     @Operation(summary = "Get all collection points with pagination")
     public ResponseEntity<Page<CollectionPointDTO>> getAllPoints(
             @PageableDefault(size = 20) Pageable pageable) {
@@ -38,21 +38,21 @@ public class CollectionPointController {
     }
 
     @GetMapping("/list")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR', 'CLIENT', 'ESTABLISHMENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR', 'CLIENT', 'ESTABLISHMENT')")
     @Operation(summary = "Get all collection points as list")
     public ResponseEntity<List<CollectionPointDTO>> getAllPointsList() {
         return ResponseEntity.ok(pointService.getAllPoints());
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR', 'CLIENT', 'ESTABLISHMENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR', 'CLIENT', 'ESTABLISHMENT')")
     @Operation(summary = "Get collection point by ID")
     public ResponseEntity<CollectionPointDTO> getPointById(@PathVariable UUID id) {
         return ResponseEntity.ok(pointService.getPointById(id));
     }
 
     @GetMapping("/status/{status}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Get collection points by status")
     public ResponseEntity<Page<CollectionPointDTO>> getPointsByStatus(
             @PathVariable CollectionPoint.PointStatus status,
@@ -61,7 +61,7 @@ public class CollectionPointController {
     }
 
     @GetMapping("/collector/{collectorId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Get collection points by collector")
     public ResponseEntity<Page<CollectionPointDTO>> getPointsByCollector(
             @PathVariable UUID collectorId,
@@ -70,21 +70,21 @@ public class CollectionPointController {
     }
 
     @GetMapping("/collector/{collectorId}/active")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Get active collection points by collector")
     public ResponseEntity<List<CollectionPointDTO>> getActivePointsByCollector(@PathVariable UUID collectorId) {
         return ResponseEntity.ok(pointService.getActivePointsByCollector(collectorId));
     }
 
     @GetMapping("/near-full")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get near-full collection points")
     public ResponseEntity<List<CollectionPointDTO>> getNearFullPoints() {
         return ResponseEntity.ok(pointService.getNearFullPoints());
     }
 
     @GetMapping("/location")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR', 'CLIENT', 'ESTABLISHMENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR', 'CLIENT', 'ESTABLISHMENT')")
     @Operation(summary = "Get collection points by bounding box")
     public ResponseEntity<List<CollectionPointDTO>> getPointsByLocation(
             @RequestParam BigDecimal minLat,
@@ -95,7 +95,7 @@ public class CollectionPointController {
     }
 
     @GetMapping("/city/{city}/state/{state}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR', 'CLIENT', 'ESTABLISHMENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR', 'CLIENT', 'ESTABLISHMENT')")
     @Operation(summary = "Get collection points by city and state")
     public ResponseEntity<List<CollectionPointDTO>> getPointsByCityAndState(
             @PathVariable String city,
@@ -104,14 +104,14 @@ public class CollectionPointController {
     }
 
     @GetMapping("/unassigned")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get unassigned collection points")
     public ResponseEntity<List<CollectionPointDTO>> getUnassignedPoints() {
         return ResponseEntity.ok(pointService.getUnassignedPoints());
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Create new collection point")
     public ResponseEntity<CollectionPointDTO> createPoint(
             @Valid @RequestBody CollectionPointDTO request,
@@ -123,7 +123,7 @@ public class CollectionPointController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Update collection point")
     public ResponseEntity<CollectionPointDTO> updatePoint(
             @PathVariable UUID id,
@@ -149,7 +149,7 @@ public class CollectionPointController {
     }
 
     @PutMapping("/{pointId}/collector/{collectorId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Assign collector to collection point")
     public ResponseEntity<CollectionPointDTO> assignCollector(
             @PathVariable UUID pointId,
@@ -162,7 +162,7 @@ public class CollectionPointController {
     }
 
     @DeleteMapping("/{pointId}/collector")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Unassign collector from collection point")
     public ResponseEntity<CollectionPointDTO> unassignCollector(
             @PathVariable UUID pointId,
@@ -174,7 +174,7 @@ public class CollectionPointController {
     }
 
     @PutMapping("/{pointId}/volume")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Update collection point volume")
     public ResponseEntity<CollectionPointDTO> updateVolume(
             @PathVariable UUID pointId,
@@ -187,7 +187,7 @@ public class CollectionPointController {
     }
 
     @PutMapping("/{pointId}/volume/add")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Add volume to collection point")
     public ResponseEntity<CollectionPointDTO> addVolume(
             @PathVariable UUID pointId,
@@ -200,7 +200,7 @@ public class CollectionPointController {
     }
 
     @PutMapping("/{pointId}/volume/remove")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Remove volume from collection point")
     public ResponseEntity<CollectionPointDTO> removeVolume(
             @PathVariable UUID pointId,

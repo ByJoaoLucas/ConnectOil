@@ -26,7 +26,7 @@ public class NotificationController {
     private final NotificationService notificationService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR', 'ESTABLISHMENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR', 'ESTABLISHMENT')")
     @Operation(summary = "Get user notifications with pagination")
     public ResponseEntity<Page<NotificationDTO>> getNotifications(
             @AuthenticationPrincipal User currentUser,
@@ -35,28 +35,28 @@ public class NotificationController {
     }
 
     @GetMapping("/unread")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR', 'ESTABLISHMENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR', 'ESTABLISHMENT')")
     @Operation(summary = "Get unread notifications")
     public ResponseEntity<List<NotificationDTO>> getUnreadNotifications(@AuthenticationPrincipal User currentUser) {
         return ResponseEntity.ok(notificationService.getUnreadNotifications(currentUser.getId()));
     }
 
     @GetMapping("/count/unread")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR', 'ESTABLISHMENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR', 'ESTABLISHMENT')")
     @Operation(summary = "Get unread notification count")
     public ResponseEntity<Long> getUnreadCount(@AuthenticationPrincipal User currentUser) {
         return ResponseEntity.ok(notificationService.getUnreadCount(currentUser.getId()));
     }
 
     @PutMapping("/{id}/read")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR', 'ESTABLISHMENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR', 'ESTABLISHMENT')")
     @Operation(summary = "Mark notification as read")
     public ResponseEntity<NotificationDTO> markAsRead(@PathVariable UUID id) {
         return ResponseEntity.ok(notificationService.markAsRead(id));
     }
 
     @PutMapping("/read-all")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR', 'ESTABLISHMENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR', 'ESTABLISHMENT')")
     @Operation(summary = "Mark all notifications as read")
     public ResponseEntity<Void> markAllAsRead(@AuthenticationPrincipal User currentUser) {
         notificationService.markAllAsRead(currentUser.getId());

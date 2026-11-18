@@ -33,7 +33,7 @@ public class CollectionRecordController {
     private final CollectionRecordService recordService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Get all records with pagination")
     public ResponseEntity<Page<CollectionRecordDTO>> getAllRecords(
             @PageableDefault(size = 20) Pageable pageable) {
@@ -41,21 +41,21 @@ public class CollectionRecordController {
     }
 
     @GetMapping("/list")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Get all records as list")
     public ResponseEntity<List<CollectionRecordDTO>> getAllRecordsList() {
         return ResponseEntity.ok(recordService.getAllRecords());
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Get record by ID")
     public ResponseEntity<CollectionRecordDTO> getRecordById(@PathVariable UUID id) {
         return ResponseEntity.ok(recordService.getRecordById(id));
     }
 
     @GetMapping("/point/{pointId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Get records by collection point")
     public ResponseEntity<Page<CollectionRecordDTO>> getRecordsByPoint(
             @PathVariable UUID pointId,
@@ -64,7 +64,7 @@ public class CollectionRecordController {
     }
 
     @GetMapping("/collector/{collectorId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Get records by collector")
     public ResponseEntity<Page<CollectionRecordDTO>> getRecordsByCollector(
             @PathVariable UUID collectorId,
@@ -73,7 +73,7 @@ public class CollectionRecordController {
     }
 
     @GetMapping("/collector/{collectorId}/range")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Get records by collector and date range")
     public ResponseEntity<List<CollectionRecordDTO>> getRecordsByCollectorAndDateRange(
             @PathVariable UUID collectorId,
@@ -83,7 +83,7 @@ public class CollectionRecordController {
     }
 
     @GetMapping("/range")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get records by date range")
     public ResponseEntity<List<CollectionRecordDTO>> getRecordsByDateRange(
             @RequestParam LocalDateTime start,
@@ -92,14 +92,14 @@ public class CollectionRecordController {
     }
 
     @GetMapping("/pending-verification")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get pending verification records")
     public ResponseEntity<List<CollectionRecordDTO>> getPendingVerificationRecords() {
         return ResponseEntity.ok(recordService.getPendingVerificationRecords());
     }
 
     @GetMapping("/collector/{collectorId}/pending-verification")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get pending verification records by collector")
     public ResponseEntity<List<CollectionRecordDTO>> getPendingVerificationByCollector(
             @PathVariable UUID collectorId) {
@@ -107,7 +107,7 @@ public class CollectionRecordController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Create new collection record")
     public ResponseEntity<CollectionRecordDTO> createRecord(
             @Valid @RequestBody CollectionRecordDTO request,
@@ -119,7 +119,7 @@ public class CollectionRecordController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Update collection record")
     public ResponseEntity<CollectionRecordDTO> updateRecord(
             @PathVariable UUID id,
@@ -132,7 +132,7 @@ public class CollectionRecordController {
     }
 
     @PutMapping("/{id}/verify")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Verify collection record (generates certificate)")
     public ResponseEntity<CollectionRecordDTO> verifyRecord(
             @PathVariable UUID id,
@@ -146,7 +146,7 @@ public class CollectionRecordController {
 
     // US05 - Establishment confirms collection with confirmation code
     @PutMapping("/{id}/confirm")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'ESTABLISHMENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ESTABLISHMENT')")
     @Operation(summary = "Confirm collection by establishment using confirmation code")
     public ResponseEntity<CollectionRecordDTO> confirmCollection(
             @PathVariable UUID id,
@@ -159,7 +159,7 @@ public class CollectionRecordController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Delete collection record")
     public ResponseEntity<Void> deleteRecord(
             @PathVariable UUID id,
@@ -173,7 +173,7 @@ public class CollectionRecordController {
 
     // US07 - Generate/download certificate
     @GetMapping("/{id}/certificate")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR', 'ESTABLISHMENT')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR', 'ESTABLISHMENT')")
     @Operation(summary = "Get certificate data for PDF generation")
     public ResponseEntity<CollectionRecordDTO> getCertificate(@PathVariable UUID id) {
         return ResponseEntity.ok(recordService.generateCertificate(id));
@@ -181,7 +181,7 @@ public class CollectionRecordController {
 
     // Reports
     @GetMapping("/reports/volume/collector/{collectorId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get total volume by collector")
     public ResponseEntity<BigDecimal> getTotalVolumeByCollector(
             @PathVariable UUID collectorId,
@@ -191,7 +191,7 @@ public class CollectionRecordController {
     }
 
     @GetMapping("/reports/volume/point/{pointId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get total volume by collection point")
     public ResponseEntity<BigDecimal> getTotalVolumeByPoint(
             @PathVariable UUID pointId,
@@ -201,7 +201,7 @@ public class CollectionRecordController {
     }
 
     @GetMapping("/reports/count/collector/{collectorId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get collection count by collector")
     public ResponseEntity<Long> getCollectionCountByCollector(
             @PathVariable UUID collectorId,
@@ -211,7 +211,7 @@ public class CollectionRecordController {
     }
 
     @GetMapping("/reports/quality/collector/{collectorId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get average quality by collector")
     public ResponseEntity<Double> getAverageQualityByCollector(
             @PathVariable UUID collectorId,
@@ -221,7 +221,7 @@ public class CollectionRecordController {
     }
 
     @GetMapping("/reports/daily-volume")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get daily volume report")
     public ResponseEntity<List<DailyVolumeDTO>> getDailyVolumeReport(
             @RequestParam LocalDateTime start,
@@ -230,7 +230,7 @@ public class CollectionRecordController {
     }
 
     @GetMapping("/reports/collector-performance")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get collector performance report")
     public ResponseEntity<List<CollectorPerformanceDTO>> getCollectorPerformanceReport(
             @RequestParam LocalDateTime start,
@@ -239,7 +239,7 @@ public class CollectionRecordController {
     }
 
     @GetMapping("/reports/oil-type-volume")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get oil type volume report")
     public ResponseEntity<List<OilTypeVolumeDTO>> getOilTypeVolumeReport(
             @RequestParam LocalDateTime start,

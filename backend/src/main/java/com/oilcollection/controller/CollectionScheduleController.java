@@ -31,7 +31,7 @@ public class CollectionScheduleController {
     private final CollectionScheduleService scheduleService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Get all schedules with pagination")
     public ResponseEntity<Page<CollectionScheduleDTO>> getAllSchedules(
             @PageableDefault(size = 20) Pageable pageable) {
@@ -39,21 +39,21 @@ public class CollectionScheduleController {
     }
 
     @GetMapping("/list")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Get all schedules as list")
     public ResponseEntity<List<CollectionScheduleDTO>> getAllSchedulesList() {
         return ResponseEntity.ok(scheduleService.getAllSchedules());
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Get schedule by ID")
     public ResponseEntity<CollectionScheduleDTO> getScheduleById(@PathVariable UUID id) {
         return ResponseEntity.ok(scheduleService.getScheduleById(id));
     }
 
     @GetMapping("/collector/{collectorId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Get schedules by collector")
     public ResponseEntity<Page<CollectionScheduleDTO>> getSchedulesByCollector(
             @PathVariable UUID collectorId,
@@ -62,7 +62,7 @@ public class CollectionScheduleController {
     }
 
     @GetMapping("/collector/{collectorId}/status/{status}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Get schedules by collector and status")
     public ResponseEntity<List<CollectionScheduleDTO>> getSchedulesByCollectorAndStatus(
             @PathVariable UUID collectorId,
@@ -71,35 +71,35 @@ public class CollectionScheduleController {
     }
 
     @GetMapping("/point/{pointId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Get schedules by collection point")
     public ResponseEntity<List<CollectionScheduleDTO>> getSchedulesByPoint(@PathVariable UUID pointId) {
         return ResponseEntity.ok(scheduleService.getSchedulesByPoint(pointId));
     }
 
     @GetMapping("/date/{date}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Get schedules by date")
     public ResponseEntity<List<CollectionScheduleDTO>> getSchedulesByDate(@PathVariable LocalDate date) {
         return ResponseEntity.ok(scheduleService.getSchedulesByDate(date));
     }
 
     @GetMapping("/collector/{collectorId}/upcoming")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Get upcoming schedules for collector")
     public ResponseEntity<List<CollectionScheduleDTO>> getUpcomingSchedules(@PathVariable UUID collectorId) {
         return ResponseEntity.ok(scheduleService.getUpcomingSchedules(collectorId));
     }
 
     @GetMapping("/overdue")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get overdue schedules")
     public ResponseEntity<List<CollectionScheduleDTO>> getOverdueSchedules() {
         return ResponseEntity.ok(scheduleService.getOverdueSchedules());
     }
 
     @GetMapping("/collector/{collectorId}/range")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Get schedules by collector and date range")
     public ResponseEntity<List<CollectionScheduleDTO>> getSchedulesByCollectorAndDateRange(
             @PathVariable UUID collectorId,
@@ -109,7 +109,7 @@ public class CollectionScheduleController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR', 'ESTABLISHMENT')")
     @Operation(summary = "Create new schedule")
     public ResponseEntity<CollectionScheduleDTO> createSchedule(
             @Valid @RequestBody CollectionScheduleDTO request,
@@ -121,7 +121,7 @@ public class CollectionScheduleController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Update schedule")
     public ResponseEntity<CollectionScheduleDTO> updateSchedule(
             @PathVariable UUID id,
@@ -134,7 +134,7 @@ public class CollectionScheduleController {
     }
 
     @PutMapping("/{id}/assign")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Assign schedule to collector")
     public ResponseEntity<CollectionScheduleDTO> assignSchedule(
             @PathVariable UUID id,
@@ -147,7 +147,7 @@ public class CollectionScheduleController {
     }
 
     @PutMapping("/{id}/start")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Start schedule (collector en route)")
     public ResponseEntity<CollectionScheduleDTO> startSchedule(
             @PathVariable UUID id,
@@ -159,7 +159,7 @@ public class CollectionScheduleController {
     }
 
     @PutMapping("/{id}/arrive")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Mark collector arrived at collection point")
     public ResponseEntity<CollectionScheduleDTO> arriveAtPoint(
             @PathVariable UUID id,
@@ -171,7 +171,7 @@ public class CollectionScheduleController {
     }
 
     @PutMapping("/{id}/complete")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Complete schedule")
     public ResponseEntity<CollectionScheduleDTO> completeSchedule(
             @PathVariable UUID id,
@@ -183,7 +183,7 @@ public class CollectionScheduleController {
     }
 
     @PutMapping("/{id}/cancel")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Cancel schedule (must be at least 2 hours before scheduled time)")
     public ResponseEntity<CollectionScheduleDTO> cancelSchedule(
             @PathVariable UUID id,
@@ -196,7 +196,7 @@ public class CollectionScheduleController {
     }
 
     @PutMapping("/{id}/reschedule")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Reschedule (must be at least 2 hours before scheduled time)")
     public ResponseEntity<CollectionScheduleDTO> rescheduleSchedule(
             @PathVariable UUID id,

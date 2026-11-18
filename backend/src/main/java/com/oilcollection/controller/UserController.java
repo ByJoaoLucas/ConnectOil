@@ -28,7 +28,7 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get all users with pagination")
     public ResponseEntity<Page<UserDTO>> getAllUsers(
             @PageableDefault(size = 20) Pageable pageable) {
@@ -36,21 +36,21 @@ public class UserController {
     }
 
     @GetMapping("/list")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get all users as list")
     public ResponseEntity<List<UserDTO>> getAllUsersList() {
         return ResponseEntity.ok(userService.getAllUsers());
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get user by ID")
     public ResponseEntity<UserDTO> getUserById(@PathVariable UUID id) {
         return ResponseEntity.ok(userService.getUserById(id));
     }
 
     @GetMapping("/role/{role}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get users by role")
     public ResponseEntity<Page<UserDTO>> getUsersByRole(
             @PathVariable User.UserRole role,
@@ -59,7 +59,7 @@ public class UserController {
     }
 
     @GetMapping("/collectors")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get active collectors")
     public ResponseEntity<List<UserDTO>> getActiveCollectors() {
         return ResponseEntity.ok(userService.getActiveCollectors());
@@ -78,7 +78,7 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Update user")
     public ResponseEntity<UserDTO> updateUser(
             @PathVariable UUID id,

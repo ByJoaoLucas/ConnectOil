@@ -148,7 +148,6 @@ public class User implements UserDetails {
 
     public enum UserRole {
         ADMIN,
-        MANAGER,
         COLLECTOR,
         CLIENT,
         ESTABLISHMENT
