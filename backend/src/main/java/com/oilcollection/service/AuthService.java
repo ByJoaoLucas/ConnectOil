@@ -22,6 +22,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -41,6 +42,13 @@ public class AuthService {
     private static final Pattern LOWERCASE_PATTERN = Pattern.compile("[a-z]");
     private static final Pattern NUMBER_PATTERN = Pattern.compile("\\d");
     private static final Pattern SPECIAL_PATTERN = Pattern.compile("[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?]");
+
+    // TODO: remover ADMIN do cadastro público antes da entrega final
+    private static final Set<User.UserRole> PUBLIC_REGISTRATION_ROLES = Set.of(
+            User.UserRole.ESTABLISHMENT,
+            User.UserRole.COLLECTOR,
+            User.UserRole.ADMIN
+    );
 
     @Transactional
     public AuthResponseDTO login(AuthRequestDTO request, HttpServletRequest httpRequest) {
@@ -107,26 +115,40 @@ public class AuthService {
         String ipAddress = getClientIp(httpRequest);
         String userAgent = httpRequest.getHeader("User-Agent");
 
-        User.UserRole role = request.getRole() != null ? request.getRole() : User.UserRole.COLLECTOR;
+        User.UserRole role = request.getRole();
 
-        // Validate role-specific document requirements
+        // Validate role: only ESTABLISHMENT, COLLECTOR, ADMIN allowed for public registration
+        if (role == null || !PUBLIC_REGISTRATION_ROLES.contains(role)) {
+            throw new BusinessException("Invalid role for public registration", "INVALID_ROLE");
+        }
+
+        // Validate role-specific document and field requirements
         if (role == User.UserRole.ESTABLISHMENT) {
             if (request.getCnpj() == null || request.getCnpj().isBlank()) {
                 throw new BusinessException("CNPJ is required for establishment registration", "CNPJ_REQUIRED");
             }
-            // Validate CNPJ format (basic check - 14 digits)
-            if (!request.getCnpj().matches("^\\d{14}$")) {
-                throw new BusinessException("CNPJ must contain exactly 14 digits", "INVALID_CNPJ");
+            // Validate CNPJ format (12 alphanumeric + 2 digits = 14 chars)
+            if (!request.getCnpj().matches("^[A-Z0-9]{12}[0-9]{2}$")) {
+                throw new BusinessException("CNPJ must contain 12 alphanumeric characters followed by 2 digits", "INVALID_CNPJ");
             }
-        } else if (role == User.UserRole.COLLECTOR || role == User.UserRole.CLIENT) {
+            // Require establishment name
+            if (request.getEstablishmentName() == null || request.getEstablishmentName().isBlank()) {
+                throw new BusinessException("Establishment name is required", "ESTABLISHMENT_NAME_REQUIRED");
+            }
+            // Require establishment address
+            if (request.getEstablishmentAddress() == null || request.getEstablishmentAddress().isBlank()) {
+                throw new BusinessException("Establishment address is required", "ESTABLISHMENT_ADDRESS_REQUIRED");
+            }
+        } else if (role == User.UserRole.COLLECTOR) {
             if (request.getCpf() == null || request.getCpf().isBlank()) {
-                throw new BusinessException("CPF is required for collector/client registration", "CPF_REQUIRED");
+                throw new BusinessException("CPF is required for collector registration", "CPF_REQUIRED");
             }
             // Validate CPF format (basic check - 11 digits)
             if (!request.getCpf().matches("^\\d{11}$")) {
                 throw new BusinessException("CPF must contain exactly 11 digits", "INVALID_CPF");
             }
         }
+        // ADMIN: no CPF/CNPJ requirement
 
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new BusinessException("Email already registered", "EMAIL_ALREADY_EXISTS");

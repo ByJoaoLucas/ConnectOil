@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { api } from '@/lib/api';
-import { User, AuthResponse } from '@/types';
+import { User, AuthResponse, RegisterData } from '@/types';
 
 interface AuthContextType {
   user: User | null;
@@ -15,15 +15,6 @@ interface AuthContextType {
   logout: () => void;
   refreshAccessToken: () => Promise<void>;
   updateUser: (user: Partial<User>) => void;
-}
-
-interface RegisterData {
-  name: string;
-  email: string;
-  password: string;
-  cpf: string;
-  phoneNumber?: string;
-  role?: 'ADMIN' | 'MANAGER' | 'COLLECTOR' | 'CLIENT';
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

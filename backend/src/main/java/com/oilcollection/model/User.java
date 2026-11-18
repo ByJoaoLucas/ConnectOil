@@ -42,7 +42,7 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private String password;
 
-    @Column(nullable = false, unique = true, length = 14)
+    @Column(nullable = true, unique = true, length = 14)
     private String cpf;
 
     @Column(unique = true, length = 18)

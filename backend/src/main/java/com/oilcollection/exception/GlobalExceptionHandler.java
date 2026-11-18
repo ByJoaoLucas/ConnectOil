@@ -93,9 +93,27 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(
             DataIntegrityViolationException ex, WebRequest request) {
-        String message = "Data integrity violation";
-        if (ex.getMessage().contains("unique") || ex.getMessage().contains("duplicate")) {
-            message = "A record with this value already exists";
+        String message = "Erro de integridade dos dados";
+        String msg = ex.getMostSpecificCause() != null ? ex.getMostSpecificCause().getMessage() : ex.getMessage();
+        if (msg != null) {
+            String lowerMsg = msg.toLowerCase();
+            if (lowerMsg.contains("users_email_key") || lowerMsg.contains("idx_user_email") || lowerMsg.contains("email") && lowerMsg.contains("unique")) {
+                message = "Este e-mail já está cadastrado";
+            } else if (lowerMsg.contains("users_cpf_key") || lowerMsg.contains("idx_user_cpf") || lowerMsg.contains("cpf") && lowerMsg.contains("unique")) {
+                message = "Este CPF já está cadastrado";
+            } else if (lowerMsg.contains("users_cnpj_key") || lowerMsg.contains("idx_user_cnpj") || lowerMsg.contains("cnpj") && lowerMsg.contains("unique")) {
+                message = "Este CNPJ já está cadastrado";
+            } else if (lowerMsg.contains("unique") || lowerMsg.contains("duplicate")) {
+                message = "Já existe um registro com este valor";
+            } else if (lowerMsg.contains("establishment_state") || lowerMsg.contains("state") && lowerMsg.contains("length")) {
+                message = "Estado deve ter no máximo 2 caracteres";
+            } else if (lowerMsg.contains("establishment_zip_code") || lowerMsg.contains("zip_code") && lowerMsg.contains("length")) {
+                message = "CEP deve ter no máximo 10 caracteres";
+            } else if (lowerMsg.contains("phone_number") && lowerMsg.contains("length")) {
+                message = "Telefone deve ter no máximo 20 caracteres";
+            } else if (lowerMsg.contains("cnpj") && lowerMsg.contains("length")) {
+                message = "CNPJ deve ter no máximo 18 caracteres";
+            }
         }
 
         ErrorResponse error = new ErrorResponse(
