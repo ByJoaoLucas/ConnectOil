@@ -1,3 +1,33 @@
+###### ![Connect Oil  LOGO.png](utils/Connect%20Oil%20%20LOGO.png)
+
+# Projeto de Engenharia de Software
+#### Sistemas de Informação | Universidade Federal da Paraíba
+
+---
+### Acesso Rápido
+#### [📋 Backlog](Backlog.md)
+#### [📱 Protótipo](Prototipo.md)
+#### [👤 Personas](Personas.md)
+#### [🛡️ User Stories Éticas](User-Stories-Eticas.md)
+#### [🏎️ Sprint Review & Retrospective](Sprint-Rewiew-e-Retrospective.md)
+#### [📜 Guia de Entrevista com Stakeholders](Guia-Entrevista-Stakeholders.md)
+
+---
+### Artefatos
+#### 🎥 Pitch: [Connect Oil | Pitch](utils/Connect%20Oil%20%20Pitch.pdf)
+#### 💾 Notion: [Connect Oil | Notion](https://app.notion.com/invite/86231f593f940bc69ab391dc9218407ae0f73613)
+
+---
+
+## Alunos:
+* Miguel Nascimento
+* Kauã Araujo
+* João Lucas
+* Joedson Lucas
+* Samuel Jackson
+
+---
+
 # Sistema de Coleta de Óleo
 
 Sistema completo para gestão de pontos de coleta, agendamentos e registros de coleta de óleo usado.
