@@ -283,27 +283,17 @@ class AuthServiceTest {
     // ===== ROLE VALIDATION TESTS =====
 
     @Test
-    void register_AdminRole_Accepted() {
-        // TODO: remover junto com o ADMIN do cadastro público
+    void register_AdminRole_ThrowsInvalidRole() {
         UserDTO adminRequest = new UserDTO();
         adminRequest.setName("Admin User");
         adminRequest.setEmail("admin@example.com");
         adminRequest.setPassword("password123");
         adminRequest.setRole(User.UserRole.ADMIN);
-        // No CPF/CNPJ required for ADMIN
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> authService.register(adminRequest, httpRequest));
 
-        when(userRepository.existsByEmail(adminRequest.getEmail())).thenReturn(false);
-        when(passwordEncoder.encode(adminRequest.getPassword())).thenReturn("encodedPassword");
-        when(userRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(jwtTokenProvider.generateToken(any())).thenReturn("access-token");
-        when(jwtTokenProvider.generateRefreshToken(adminRequest.getEmail())).thenReturn("refresh-token");
-        when(jwtTokenProvider.getJwtProperties()).thenReturn(new com.oilcollection.security.JwtProperties());
-
-        AuthResponseDTO response = authService.register(adminRequest, httpRequest);
-
-        assertNotNull(response);
-        assertEquals("access-token", response.getAccessToken());
-        verify(userRepository).save(any());
+        assertEquals("INVALID_ROLE", exception.getErrorCode());
+        verify(userRepository, never()).save(any());
     }
 
     @Test

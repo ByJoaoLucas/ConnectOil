@@ -61,11 +61,13 @@ public class UserService {
             throw new BusinessException("Email already registered", "EMAIL_ALREADY_EXISTS");
         }
 
-        if (userRepository.existsByCpf(request.getCpf())) {
+        if (request.getCpf() != null && !request.getCpf().isBlank()
+                && userRepository.existsByCpf(request.getCpf())) {
             throw new BusinessException("CPF already registered", "CPF_ALREADY_EXISTS");
         }
 
-        if (request.getCnpj() != null && userRepository.existsByCnpj(request.getCnpj())) {
+        if (request.getCnpj() != null && !request.getCnpj().isBlank()
+                && userRepository.existsByCnpj(request.getCnpj())) {
             throw new BusinessException("CNPJ already registered", "CNPJ_ALREADY_EXISTS");
         }
 
@@ -107,11 +109,15 @@ public class UserService {
             throw new BusinessException("Email already registered", "EMAIL_ALREADY_EXISTS");
         }
 
-        if (!user.getCpf().equals(request.getCpf()) && userRepository.existsByCpf(request.getCpf())) {
+        if (request.getCpf() != null && !request.getCpf().isBlank()
+                && !request.getCpf().equals(user.getCpf())
+                && userRepository.existsByCpf(request.getCpf())) {
             throw new BusinessException("CPF already registered", "CPF_ALREADY_EXISTS");
         }
 
-        if (request.getCnpj() != null && !request.getCnpj().equals(user.getCnpj()) && userRepository.existsByCnpj(request.getCnpj())) {
+        if (request.getCnpj() != null && !request.getCnpj().isBlank()
+                && !request.getCnpj().equals(user.getCnpj())
+                && userRepository.existsByCnpj(request.getCnpj())) {
             throw new BusinessException("CNPJ already registered", "CNPJ_ALREADY_EXISTS");
         }
 

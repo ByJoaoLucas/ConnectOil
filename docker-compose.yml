@@ -29,7 +29,7 @@ services:
       DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-oil_collection}
       DATABASE_USERNAME: ${POSTGRES_USER:-postgres}
       DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      JWT_SECRET: ${JWT_SECRET:-bXktc2VjcmV0LWtleS1mb3ItanN0LXRva2VuLWdlbmVyYXRpb24taW4tb2lsLWNvbGxlY3Rpb24tc3lzdGVt}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
       MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
       MAIL_PORT: ${MAIL_PORT:-587}
       MAIL_USERNAME: ${MAIL_USERNAME:-}
@@ -42,7 +42,7 @@ services:
     networks:
       - oil-collection-network
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/api/actuator/health"]
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -52,9 +52,12 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080/api}
     container_name: oil-collection-frontend
     environment:
-      NEXT_PUBLIC_API_URL: http://backend:8080/api
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080/api}
+      NEXT_PUBLIC_INTERNAL_API_URL: http://backend:8080/api
     ports:
       - "3000:3000"
     depends_on:

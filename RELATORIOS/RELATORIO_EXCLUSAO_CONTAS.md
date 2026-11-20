@@ -5,7 +5,7 @@
 
 ## Implementação
 
-Foi adicionado `DELETE /api/auth/account` (rota completa: `/api/api/auth/account`, devido ao `context-path` `/api` e ao prefixo `/api` do controller). A requisição exige autenticação e aceita somente usuários com perfil `COLLECTOR` ou `ESTABLISHMENT`. O usuário identificado pelo token só pode excluir a própria conta. A resposta de sucesso é `204 No Content`.
+Foi adicionado `DELETE /api/auth/account`. A requisição exige autenticação e aceita somente usuários com perfil `COLLECTOR` ou `ESTABLISHMENT`. O usuário identificado pelo token só pode excluir a própria conta. A resposta de sucesso é `204 No Content`.
 
 A operação desativa a conta (`is_active = false`) e registra uma auditoria `DELETE` da entidade `USER`. A linha é mantida para preservar vínculos e histórico de coletas, agendamentos e incidentes. O filtro JWT não autentica usuários inativos, as rotas de conta exigem autenticação e novas emissões de token são recusadas.
 
@@ -25,7 +25,7 @@ IDs criados durante o teste:
 
 Após excluir o coletor, uma tentativa de login retornou `400` com a mensagem `Account is deactivated`. A consulta ao banco confirmou os dois registros desativados e os quatro eventos de auditoria esperados.
 
-Também foi feita uma chamada a `/api/api/auth/me` usando o access token emitido antes da exclusão. O backend recusou a chamada (`403`), confirmando que o token não continua autenticando a conta inativa.
+Também foi feita uma chamada a `/api/auth/me` usando o access token emitido antes da exclusão. O backend recusou a chamada (`403`), confirmando que o token não continua autenticando a conta inativa.
 
 ## Verificação de compilação e testes
 
@@ -36,7 +36,7 @@ Também foi feita uma chamada a `/api/api/auth/me` usando o access token emitido
 ## Endpoint
 
 ```http
-DELETE /api/api/auth/account
+DELETE /api/auth/account
 Authorization: Bearer <access_token>
 ```
 

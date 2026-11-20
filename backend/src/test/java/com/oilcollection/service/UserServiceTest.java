@@ -232,6 +232,48 @@ class UserServiceTest {
         assertEquals(User.UserRole.ESTABLISHMENT, result.getRole());
         assertEquals("12345678000199", result.getCnpj());
         verify(userRepository).save(any(User.class));
+        verify(userRepository, never()).existsByCpf(anyString());
+    }
+
+    @Test
+    void createUser_WithBlankCpfDoesNotQueryCpfRepository() {
+        createRequest.setCpf("   ");
+
+        when(userRepository.existsByEmail(createRequest.getEmail())).thenReturn(false);
+        when(passwordEncoder.encode(createRequest.getPassword())).thenReturn("encodedPassword");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User user = invocation.getArgument(0);
+            user.setId(UUID.randomUUID());
+            return user;
+        });
+
+        UserDTO result = userService.createUser(createRequest, adminUser, "127.0.0.1", "test-agent");
+
+        assertNotNull(result);
+        verify(userRepository, never()).existsByCpf(any());
+        verify(userRepository).save(any(User.class));
+    }
+
+    @Test
+    void createUser_WithBlankCnpjDoesNotQueryCnpjRepository() {
+        createRequest.setRole(User.UserRole.ESTABLISHMENT);
+        createRequest.setCnpj("   ");
+        createRequest.setCpf(null);
+
+        when(userRepository.existsByEmail(createRequest.getEmail())).thenReturn(false);
+        when(passwordEncoder.encode(createRequest.getPassword())).thenReturn("encodedPassword");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User user = invocation.getArgument(0);
+            user.setId(UUID.randomUUID());
+            return user;
+        });
+
+        UserDTO result = userService.createUser(createRequest, adminUser, "127.0.0.1", "test-agent");
+
+        assertNotNull(result);
+        verify(userRepository, never()).existsByCpf(any());
+        verify(userRepository, never()).existsByCnpj(any());
+        verify(userRepository).save(any(User.class));
     }
 
     @Test
@@ -438,6 +480,49 @@ class UserServiceTest {
                 () -> userService.updateUser(testUser.getId(), updateRequest, adminUser, "127.0.0.1", "test-agent"));
 
         assertEquals("CNPJ_ALREADY_EXISTS", exception.getErrorCode());
+    }
+
+    @Test
+    void updateUser_WithNullCpfUpdatesEstablishmentWithoutCpfLookup() {
+        testUser.setRole(User.UserRole.ESTABLISHMENT);
+        testUser.setCpf(null);
+        testUser.setCnpj("12345678000199");
+        updateRequest.setRole(User.UserRole.ESTABLISHMENT);
+        updateRequest.setCpf(null);
+        updateRequest.setCnpj("12345678000199");
+
+        when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+        when(userRepository.existsByEmail(updateRequest.getEmail())).thenReturn(false);
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UserDTO result = userService.updateUser(testUser.getId(), updateRequest, adminUser,
+                "127.0.0.1", "test-agent");
+
+        assertNotNull(result);
+        assertNull(result.getCpf());
+        verify(userRepository, never()).existsByCpf(any());
+        verify(userRepository).save(testUser);
+    }
+
+    @Test
+    void updateUser_WithBlankCnpjDoesNotQueryCnpjRepository() {
+        testUser.setRole(User.UserRole.ESTABLISHMENT);
+        testUser.setCnpj("12345678000199");
+        updateRequest.setRole(User.UserRole.ESTABLISHMENT);
+        updateRequest.setCpf(null);
+        updateRequest.setCnpj("   ");
+
+        when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+        when(userRepository.existsByEmail(updateRequest.getEmail())).thenReturn(false);
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UserDTO result = userService.updateUser(testUser.getId(), updateRequest, adminUser,
+                "127.0.0.1", "test-agent");
+
+        assertNotNull(result);
+        verify(userRepository, never()).existsByCpf(any());
+        verify(userRepository, never()).existsByCnpj(any());
+        verify(userRepository).save(testUser);
     }
 
     // ===== DELETE USER TESTS =====

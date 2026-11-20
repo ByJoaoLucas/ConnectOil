@@ -102,10 +102,10 @@ A complexidade da senha é configurável via banco de dados (tabela `system_conf
 
 | Método | Endpoint | Descrição |
 |--------|----------|-----------|
-| `POST` | `/api/api/auth/register` | Cadastro de collector ou establishment |
-| `DELETE` | `/api/api/auth/account` | Exclusão da própria conta (soft delete) |
+| `POST` | `/api/auth/register` | Cadastro de collector ou establishment |
+| `DELETE` | `/api/auth/account` | Exclusão da própria conta (soft delete) |
 
-> **Observação:** A URL tem `/api` duplicado devido ao `context-path: /api` no `application.yml` + `@RequestMapping("/api/auth")` no controller.
+> **Observação:** A API usa um único prefixo `/api`, definido pelos `@RequestMapping` dos controllers.
 
 ---
 
@@ -113,7 +113,7 @@ A complexidade da senha é configurável via banco de dados (tabela `system_conf
 
 ### Cadastro de Estabelecimento
 ```bash
-curl -X POST http://localhost:8080/api/api/auth/register \
+curl -X POST http://localhost:8080/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Posto Exemplo",
@@ -132,7 +132,7 @@ curl -X POST http://localhost:8080/api/api/auth/register \
 
 ### Cadastro de Coletor
 ```bash
-curl -X POST http://localhost:8080/api/api/auth/register \
+curl -X POST http://localhost:8080/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "João Coletor",
@@ -146,7 +146,7 @@ curl -X POST http://localhost:8080/api/api/auth/register \
 
 ### Exclusão da Própria Conta
 ```bash
-curl -X DELETE http://localhost:8080/api/api/auth/account \
+curl -X DELETE http://localhost:8080/api/auth/account \
   -H "Authorization: Bearer <access_token>"
 ```
 
@@ -158,7 +158,7 @@ curl -X DELETE http://localhost:8080/api/api/auth/account \
 2. **Endpoint de atualização de perfil** (`PUT /api/auth/me`) para estabelecimento atualizar dados
 3. **Testes de integração** com Testcontainers (requer Docker no CI)
 4. **Documentação Swagger/OpenAPI** para os novos campos de establishment
-5. **Remover duplicação `/api/api/`** ajustando `context-path` ou `@RequestMapping`
+5. **Prefixo único `/api/`** mantido nos controllers e no cliente HTTP
 
 ---
 

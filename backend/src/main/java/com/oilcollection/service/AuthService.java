@@ -43,11 +43,9 @@ public class AuthService {
     private static final Pattern NUMBER_PATTERN = Pattern.compile("\\d");
     private static final Pattern SPECIAL_PATTERN = Pattern.compile("[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?]");
 
-    // TODO: remover ADMIN do cadastro público antes da entrega final
     private static final Set<User.UserRole> PUBLIC_REGISTRATION_ROLES = Set.of(
             User.UserRole.ESTABLISHMENT,
-            User.UserRole.COLLECTOR,
-            User.UserRole.ADMIN
+            User.UserRole.COLLECTOR
     );
 
     @Transactional
@@ -117,7 +115,7 @@ public class AuthService {
 
         User.UserRole role = request.getRole();
 
-        // Validate role: only ESTABLISHMENT, COLLECTOR, ADMIN allowed for public registration
+        // Validate role: only ESTABLISHMENT and COLLECTOR are allowed for public registration
         if (role == null || !PUBLIC_REGISTRATION_ROLES.contains(role)) {
             throw new BusinessException("Invalid role for public registration", "INVALID_ROLE");
         }
@@ -148,8 +146,6 @@ public class AuthService {
                 throw new BusinessException("CPF must contain exactly 11 digits", "INVALID_CPF");
             }
         }
-        // ADMIN: no CPF/CNPJ requirement
-
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new BusinessException("Email already registered", "EMAIL_ALREADY_EXISTS");
         }

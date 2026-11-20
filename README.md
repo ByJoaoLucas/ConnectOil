@@ -134,7 +134,7 @@ docker-compose up -d
 # Acesse:
 # Frontend: http://localhost:3000
 # Backend API: http://localhost:8080/api
-# Swagger UI: http://localhost:8080/api/swagger-ui.html
+# Swagger UI: http://localhost:8080/swagger-ui.html
 # pgAdmin: http://localhost:5050
 ```
 
@@ -200,12 +200,13 @@ oil-collection/
 | `POSTGRES_DB` | Nome do banco de dados | `oil_collection` |
 | `POSTGRES_USER` | Usuário do PostgreSQL | `postgres` |
 | `POSTGRES_PASSWORD` | Senha do PostgreSQL | `postgres` |
-| `JWT_SECRET` | Chave secreta para JWT | (obrigatório em prod) |
+| `JWT_SECRET` | Chave secreta para JWT | (obrigatório) |
 | `MAIL_HOST` | Servidor SMTP | `smtp.gmail.com` |
 | `MAIL_PORT` | Porta SMTP | `587` |
 | `MAIL_USERNAME` | Usuário SMTP | - |
 | `MAIL_PASSWORD` | Senha SMTP (app password) | - |
 | `NEXT_PUBLIC_API_URL` | URL da API no frontend | `http://localhost:8080/api` |
+| `NEXT_PUBLIC_INTERNAL_API_URL` | URL interna da API para SSR no Docker | `http://backend:8080/api` |
 | `PGADMIN_EMAIL` | Email do pgAdmin | `admin@oilcollection.com` |
 | `PGADMIN_PASSWORD` | Senha do pgAdmin | `admin123` |
 
@@ -337,7 +338,7 @@ spec:
 
 ## 📚 Documentação da API
 
-Acesse o Swagger UI em: `http://localhost:8080/api/swagger-ui.html`
+Acesse o Swagger UI em: `http://localhost:8080/swagger-ui.html`
 
 ### Principais Endpoints
 

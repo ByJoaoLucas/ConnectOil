@@ -1,15 +1,16 @@
 import axios from 'axios';
 
-// Backend has context-path /api and controller /api/auth -> full path /api/api/auth
-// In browser, use localhost:8080. In container (SSR), use backend:8080
-const getApiBaseUrl = () => {
-  if (typeof window !== 'undefined') {
-    // Browser: use host machine's localhost
-    return 'http://localhost:8080/api/api';
-  }
-  // Server-side (SSR): use Docker network
-  return `${process.env.NEXT_PUBLIC_API_URL || 'http://backend:8080/api'}/api`;
+export const getApiBaseUrl = () => {
+  const configuredUrl = typeof window === 'undefined'
+    ? process.env.NEXT_PUBLIC_INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL
+    : process.env.NEXT_PUBLIC_API_URL;
+  return (configuredUrl || '/api').replace(/\/+$/, '');
 };
+
+export const refreshAccessTokenRequest = (refreshToken: string) =>
+  axios.post(`${getApiBaseUrl()}/auth/refresh`, null, {
+    params: { refreshToken },
+  });
 
 export const api = axios.create({
   baseURL: getApiBaseUrl(),
@@ -45,9 +46,7 @@ api.interceptors.response.use(
       const refreshToken = localStorage.getItem('refreshToken');
       if (refreshToken) {
         try {
-          const response = await axios.post(`${getApiBaseUrl()}/auth/refresh`, null, {
-            params: { refreshToken },
-          });
+          const response = await refreshAccessTokenRequest(refreshToken);
 
           const { accessToken, refreshToken: newRefreshToken, user } = response.data;
 
@@ -297,9 +296,9 @@ export const notificationsApi = {
   getAll: (params?: { page?: number; size?: number; sort?: string }) =>
     api.get('/notifications', { params }),
   getMyNotifications: (params?: { page?: number; size?: number }) =>
-    api.get('/notifications/my', { params }),
+    api.get('/notifications', { params }),
   getUnreadCount: () =>
-    api.get('/notifications/unread-count'),
+    api.get('/notifications/count/unread'),
   markAsRead: (id: string) =>
     api.put(`/notifications/${id}/read`),
   markAllAsRead: () =>
@@ -330,14 +329,14 @@ export const systemConfigApi = {
     api.get('/system-config', { params }),
   getByKey: (key: string) =>
     api.get(`/system-config/${key}`),
-  getAllAsMap: () =>
-    api.get('/system-config/map'),
+  getAllAsList: () =>
+    api.get('/system-config/list'),
   create: (data: any) =>
     api.post('/system-config', data),
-  update: (key: string, value: string) =>
-    api.put(`/system-config/${key}`, null, { params: { value } }),
-  delete: (key: string) =>
-    api.delete(`/system-config/${key}`),
+  update: (configKey: string, configValue: string) =>
+    api.post('/system-config', { configKey, configValue }),
+  delete: (id: string) =>
+    api.delete(`/system-config/${id}`),
 };
 
 export default api;

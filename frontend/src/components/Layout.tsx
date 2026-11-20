@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { USER_ROLE_LABELS } from '@/types';
@@ -36,6 +36,7 @@ interface LayoutProps {
 export function Layout({ children }: LayoutProps) {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
@@ -84,7 +85,7 @@ export function Layout({ children }: LayoutProps) {
                 key={item.name}
                 href={item.href}
                 className={`flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  window.location.pathname === item.href
+                  pathname === item.href
                     ? 'bg-primary-50 text-primary-700'
                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                 }`}
