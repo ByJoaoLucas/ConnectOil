@@ -1,4 +1,4 @@
-###### ![Connect Oil  LOGO.png](utils/Connect%20Oil%20%20LOGO.png)
+###### ![Connect Oil  LOGO.png](documentacao/utils/Connect%20Oil%20%20LOGO.png)
 
 # Projeto de Engenharia de Software
 #### Sistemas de Informação | Universidade Federal da Paraíba
