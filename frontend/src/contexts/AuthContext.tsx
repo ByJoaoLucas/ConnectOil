@@ -1,6 +1,13 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from 'react';
 import { api } from '@/lib/api';
 import { User, AuthResponse, RegisterData } from '@/types';
 
@@ -27,6 +34,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isAuthenticated = !!token && !!user;
 
+  const logout = useCallback(() => {
+    setUser(null);
+    setToken(null);
+    setRefreshToken(null);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+    }
+    delete api.defaults.headers.common['Authorization'];
+  }, []);
+
+  const refreshAccessToken = useCallback(async () => {
+    const currentRefreshToken = typeof window !== 'undefined'
+      ? localStorage.getItem('refreshToken') || refreshToken
+      : refreshToken;
+
+    if (!currentRefreshToken) {
+      throw new Error('No refresh token');
+    }
+
+    const response = await api.post<AuthResponse>('/auth/refresh', null, {
+      params: { refreshToken: currentRefreshToken },
+    });
+
+    const { accessToken, refreshToken: newRefreshToken, user: userData } = response.data;
+
+    setToken(accessToken);
+    setRefreshToken(newRefreshToken);
+    setUser(userData);
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('accessToken', accessToken);
+      localStorage.setItem('refreshToken', newRefreshToken);
+      localStorage.setItem('user', JSON.stringify(userData));
+    }
+
+    api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
+  }, [refreshToken]);
+
   useEffect(() => {
     const initAuth = async () => {
       if (typeof window === 'undefined') {
@@ -45,9 +92,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(JSON.parse(storedUser));
 
           api.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
-
           await api.get('/auth/me');
-        } catch (error) {
+        } catch {
           try {
             await refreshAccessToken();
           } catch {
@@ -55,11 +101,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         }
       }
+
       setIsLoading(false);
     };
 
     initAuth();
-  }, []);
+  }, [logout, refreshAccessToken]);
 
   const login = async (email: string, password: string) => {
     const response = await api.post<AuthResponse>('/auth/login', { email, password });
@@ -87,40 +134,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('refreshToken', newRefreshToken);
     localStorage.setItem('user', JSON.stringify(userData));
-
-    api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
-  };
-
-  const logout = () => {
-    setUser(null);
-    setToken(null);
-    setRefreshToken(null);
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
-    }
-    delete api.defaults.headers.common['Authorization'];
-  };
-
-  const refreshAccessToken = async () => {
-    if (!refreshToken) throw new Error('No refresh token');
-
-    const response = await api.post<AuthResponse>('/auth/refresh', null, {
-      params: { refreshToken },
-    });
-
-    const { accessToken, refreshToken: newRefreshToken, user: userData } = response.data;
-
-    setToken(accessToken);
-    setRefreshToken(newRefreshToken);
-    setUser(userData);
-
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('accessToken', accessToken);
-      localStorage.setItem('refreshToken', newRefreshToken);
-      localStorage.setItem('user', JSON.stringify(userData));
-    }
 
     api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
   };

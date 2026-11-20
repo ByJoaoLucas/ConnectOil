@@ -95,4 +95,72 @@ describe('API client configuration', () => {
       { params: { refreshToken: 'refresh-token' } },
     );
   });
+
+  it('creates, updates and deletes collection points', () => {
+    const postSpy = jest.spyOn(api, 'post').mockResolvedValue({} as never);
+    const putSpy = jest.spyOn(api, 'put').mockResolvedValue({} as never);
+    const deleteSpy = jest.spyOn(api, 'delete').mockResolvedValue({} as never);
+
+    const { collectionPointsApi } = require('./api');
+    collectionPointsApi.create({ name: 'Posto' });
+    collectionPointsApi.update('point-1', { name: 'Posto Novo' });
+    collectionPointsApi.delete('point-1');
+
+    expect(postSpy).toHaveBeenCalledWith('/collection-points', { name: 'Posto' });
+    expect(putSpy).toHaveBeenCalledWith('/collection-points/point-1', { name: 'Posto Novo' });
+    expect(deleteSpy).toHaveBeenCalledWith('/collection-points/point-1');
+  });
+
+  it('covers schedule actions and query parameters', () => {
+    const getSpy = jest.spyOn(api, 'get').mockResolvedValue({} as never);
+    const putSpy = jest.spyOn(api, 'put').mockResolvedValue({} as never);
+    const { schedulesApi } = require('./api');
+
+    schedulesApi.getByDate('2026-11-20');
+    schedulesApi.confirm('schedule-1');
+    schedulesApi.cancel('schedule-1', 'Conflito');
+
+    expect(getSpy).toHaveBeenCalledWith('/schedules/date/2026-11-20');
+    expect(putSpy).toHaveBeenCalledWith('/schedules/schedule-1/confirm');
+    expect(putSpy).toHaveBeenCalledWith(
+      '/schedules/schedule-1/cancel',
+      null,
+      { params: { reason: 'Conflito' } },
+    );
+  });
+
+  it('covers record reporting and certificate requests', () => {
+    const getSpy = jest.spyOn(api, 'get').mockResolvedValue({} as never);
+    const { recordsApi } = require('./api');
+
+    recordsApi.getById('record-1');
+    recordsApi.getPendingVerification();
+    recordsApi.getDailyVolumeReport('2026-11-01', '2026-11-20');
+
+    expect(getSpy).toHaveBeenCalledWith('/records/record-1');
+    expect(getSpy).toHaveBeenCalledWith('/records/pending-verification');
+    expect(getSpy).toHaveBeenCalledWith(
+      '/records/reports/daily-volume',
+      { params: { start: '2026-11-01', end: '2026-11-20' } },
+    );
+  });
+
+  it('covers incident mutations', () => {
+    const postSpy = jest.spyOn(api, 'post').mockResolvedValue({} as never);
+    const putSpy = jest.spyOn(api, 'put').mockResolvedValue({} as never);
+    const deleteSpy = jest.spyOn(api, 'delete').mockResolvedValue({} as never);
+    const { incidentsApi } = require('./api');
+
+    incidentsApi.create({ incidentType: 'SPILL' });
+    incidentsApi.resolve('incident-1', 'Resolvido');
+    incidentsApi.delete('incident-1');
+
+    expect(postSpy).toHaveBeenCalledWith('/incidents', { incidentType: 'SPILL' });
+    expect(putSpy).toHaveBeenCalledWith(
+      '/incidents/incident-1/resolve',
+      null,
+      { params: { resolutionNotes: 'Resolvido' } },
+    );
+    expect(deleteSpy).toHaveBeenCalledWith('/incidents/incident-1');
+  });
 });

@@ -45,10 +45,6 @@ export default function CollectionPointDetailPage() {
   const queryClient = useQueryClient();
   const id = params?.id as string;
 
-  if (!id) {
-    return null; // or redirect
-  }
-
   const { data: pointData, isLoading: pointLoading, error: pointError } = useQuery({
     queryKey: ['collectionPoint', id],
     queryFn: () => collectionPointsApi.getById(id),
@@ -88,6 +84,10 @@ export default function CollectionPointDetailPage() {
       deleteMutation.mutate(id);
     }
   };
+
+  if (!id) {
+    return null;
+  }
 
   if (pointLoading) {
     return (

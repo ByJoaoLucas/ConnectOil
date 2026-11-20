@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import NextImage from 'next/image';
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
@@ -26,7 +27,7 @@ import {
   Star,
   Thermometer,
   Droplet,
-  Image,
+  Image as ImageIcon,
   MapPin as MapPinIcon,
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -365,9 +366,15 @@ export default function RecordDetailPage() {
                         rel="noopener noreferrer"
                         className="relative block w-24 h-24 rounded-lg overflow-hidden border border-gray-200"
                       >
-                        <img src={photo.trim()} alt={`Foto ${index + 1}`} className="w-full h-full object-cover" />
+                        <NextImage
+                          src={photo.trim()}
+                          alt={`Foto ${index + 1}`}
+                          fill
+                          unoptimized
+                          className="object-cover"
+                        />
                         <div className="absolute inset-0 bg-black/50 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <Image className="w-6 h-6 text-white" />
+                          <ImageIcon className="w-6 h-6 text-white" />
                         </div>
                       </a>
                     ))}

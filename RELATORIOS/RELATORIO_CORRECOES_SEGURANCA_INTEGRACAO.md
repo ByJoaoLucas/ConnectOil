@@ -261,3 +261,36 @@ Tambem foi ajustada a configuracao Jest:
 - transformacao TypeScript/TSX explicitamente configurada;
 - artefatos `.next` ignorados pelo haste map;
 - `setupFilesAfterEnv` utilizado corretamente.
+
+## 8. Aumento da cobertura de testes do frontend
+
+Foi iniciada a Meta 1 de cobertura com testes de API, autenticacao, layouts, login, cadastro, dashboard, pontos de coleta, registros, agendamentos e incidentes.
+
+Resultado atual da execucao `npm run test:coverage -- --runInBand`:
+
+| Indicador | Cobertura atual |
+|---|---:|
+| Statements | 29,21% |
+| Branches | 19,58% |
+| Functions | 16,07% |
+| Lines | 29,05% |
+
+- 12 suites de testes executadas;
+- 51 testes aprovados;
+- 0 falhas;
+- Meta 1 parcialmente atingida;
+- Statements, Branches e Lines ja ultrapassaram os objetivos de 20%, 15% e 20%, respectivamente;
+- Functions atingiu 16,07%, ainda abaixo da meta de 20%;
+- Nao foram desabilitadas regras nem enfraquecidos testes para elevar os numeros.
+
+Principais modulos cobertos:
+
+- Cliente Axios e grupos de endpoints;
+- contexto de autenticacao;
+- layout protegido e layout principal;
+- login e cadastro;
+- dashboard;
+- pontos de coleta e seus detalhes;
+- registros de coleta;
+- agendamentos;
+- incidentes.

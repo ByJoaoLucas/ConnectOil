@@ -1,22 +1,28 @@
+
 name: CI/CD Pipeline
 
 on:
   push:
-    branches: [main, develop]
+    branches:
+      - main
+      - develop
   pull_request:
-    branches: [main, develop]
+    branches:
+      - main
+      - develop
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  # Backend Tests
+
+  # =========================
+  # BACKEND TESTS
+  # =========================
   backend-test:
+    name: Backend Tests
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./backend
 
     services:
       postgres:
@@ -33,6 +39,10 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+    defaults:
+      run:
+        working-directory: ./backend
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -40,89 +50,91 @@ jobs:
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
+          distribution: temurin
           java-version: '21'
-          distribution: 'temurin'
           cache: maven
 
-      - name: Cache Maven packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
-      - name: Run tests
+      - name: Run backend tests
         run: mvn test -B
         env:
           DATABASE_URL: jdbc:postgresql://localhost:5432/oil_collection_test
           DATABASE_USERNAME: test
           DATABASE_PASSWORD: test
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          JWT_SECRET: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
           SPRING_PROFILES_ACTIVE: test
 
-      - name: Generate test report
+      - name: Upload backend test reports
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: backend-test-report
+          name: backend-test-reports
           path: backend/target/surefire-reports/
+          if-no-files-found: warn
 
-      - name: Upload coverage
+      - name: Upload backend coverage
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: backend-coverage
           path: backend/target/site/jacoco/
+          if-no-files-found: warn
 
 
-  # Frontend Tests
+  # =========================
+  # FRONTEND TESTS
+  # =========================
   frontend-test:
-   runs-on: ubuntu-latest
-   defaults:
-    run:
-      working-directory: ./frontend
-
-   steps:
-     - name: Checkout code
-       uses: actions/checkout@v4
-
-     - name: Set up Node.js
-       uses: actions/setup-node@v4
-       with:
-         node-version: '20'
-         cache: 'npm'
-         cache-dependency-path: frontend/package-lock.json
-
-     - name: Install dependencies
-       run: npm ci
-
-     - name: Run linting
-       run: npm run lint
-
-     - name: Run tests
-       run: npm run test:coverage
-
-     - name: Build
-       run: npm run build
-       env:
-         NEXT_PUBLIC_API_URL: http://localhost:8080/api
-
-     - name: Upload test results
-       uses: actions/upload-artifact@v4
-       if: always()
-       with:
-         name: frontend-test-report
-         path: frontend/coverage/
-
-
-  # Build and Push Backend Docker Image
-  backend-docker:
-    needs: backend-test
+    name: Frontend Tests
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
+
     defaults:
       run:
-        working-directory: ./backend
+        working-directory: ./frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Run frontend tests
+        run: npm run test:coverage
+
+      - name: Build frontend
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: /api
+
+      - name: Upload frontend coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/
+          if-no-files-found: warn
+
+
+  # =========================
+  # BACKEND DOCKER
+  # =========================
+  backend-docker:
+    name: Build and Push Backend Image
+    runs-on: ubuntu-latest
+
+    needs: backend-test
+
+    if: github.event_name == 'push'
 
     permissions:
       contents: read
@@ -135,47 +147,44 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to Container Registry
+      - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata
+      - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend
           tags: |
             type=ref,event=branch
-            type=sha,prefix=
+            type=sha
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push backend
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ./backend
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            JWT_SECRET=${{ secrets.JWT_SECRET }}
-            MAIL_HOST=${{ secrets.MAIL_HOST }}
-            MAIL_PORT=${{ secrets.MAIL_PORT }}
-            MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}
-            MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # Build and Push Frontend Docker Image
+
+  # =========================
+  # FRONTEND DOCKER
+  # =========================
   frontend-docker:
-    needs: frontend-test
+    name: Build and Push Frontend Image
     runs-on: ubuntu-latest
+
+    needs: frontend-test
+
     if: github.event_name == 'push'
-    defaults:
-      run:
-        working-directory: ./frontend
 
     permissions:
       contents: read
@@ -188,71 +197,92 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to Container Registry
+      - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata
+      - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend
           tags: |
             type=ref,event=branch
-            type=sha,prefix=
+            type=sha
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push frontend
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ./frontend
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # Deploy to Staging
+
+  # =========================
+  # DEPLOY STAGING
+  # =========================
   deploy-staging:
-    needs: [backend-docker, frontend-docker]
+    name: Deploy to Staging
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop'
+
+    needs:
+      - backend-docker
+      - frontend-docker
+
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+
     environment: staging
 
     steps:
-      - name: Deploy to staging
+      - name: Staging deployment placeholder
         run: |
-          echo "Deploying to staging environment..."
-          # Add your staging deployment commands here
-          # Example: kubectl apply -f k8s/staging/
+          echo "Configure your staging deployment here."
+          echo "Backend and frontend images were published to GHCR."
 
-  # Deploy to Production
+
+  # =========================
+  # DEPLOY PRODUCTION
+  # =========================
   deploy-production:
-    needs: [backend-docker, frontend-docker]
+    name: Deploy to Production
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+
+    needs:
+      - backend-docker
+      - frontend-docker
+
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
     environment: production
 
     steps:
-      - name: Deploy to production
+      - name: Production deployment placeholder
         run: |
-          echo "Deploying to production environment..."
-          # Add your production deployment commands here
-          # Example: kubectl apply -f k8s/production/
+          echo "Configure your production deployment here."
+          echo "Backend and frontend images were published to GHCR."
 
 
-  # Security Scan
+  # =========================
+  # SECURITY SCAN
+  # =========================
   security-scan:
-    needs: backend-test
+    name: Security Scan
     runs-on: ubuntu-latest
+
+    needs: backend-test
 
     permissions:
       contents: read
+      actions: read
       security-events: write
 
     steps:
@@ -262,8 +292,8 @@ jobs:
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
+          distribution: temurin
           java-version: '21'
-          distribution: 'temurin'
           cache: maven
 
       - name: Resolve Maven dependencies
@@ -271,15 +301,17 @@ jobs:
         run: mvn dependency:resolve -B
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.28.0
         with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret
+          format: sarif
+          output: trivy-results.sarif
+          ignore-unfixed: true
 
-      - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v4
         if: always() && hashFiles('trivy-results.sarif') != ''
         with:
-          sarif_file: 'trivy-results.sarif'
+          sarif_file: trivy-results.sarif

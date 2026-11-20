@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { schedulesApi, recordsApi, collectionPointsApi, usersApi } from '@/lib/api';
@@ -81,9 +81,6 @@ export default function CollectionCompletePage() {
   const { user } = useAuth();
   const id = params?.id as string;
 
-  if (!id) {
-    return null;
-  }
   const [showDiscrepancyWarning, setShowDiscrepancyWarning] = useState(false);
   const [discrepancyDetails, setDiscrepancyDetails] = useState('');
 
@@ -125,7 +122,7 @@ export default function CollectionCompletePage() {
   });
 
   // Check for discrepancy
-  const checkDiscrepancy = (actualVolume: number) => {
+  const checkDiscrepancy = useCallback((actualVolume: number) => {
     if (!schedule || !schedule.estimatedVolumeLiters) return;
     const estimated = schedule.estimatedVolumeLiters;
     const diffPercent = Math.abs((actualVolume - estimated) / estimated) * 100;
@@ -137,7 +134,7 @@ export default function CollectionCompletePage() {
         `Isso pode indicar um problema na medição ou no registro.`
       );
     }
-  };
+  }, [schedule]);
 
   const {
     register,
@@ -177,7 +174,7 @@ export default function CollectionCompletePage() {
     if (volume > 0) {
       checkDiscrepancy(volume);
     }
-  }, [volume]);
+  }, [volume, checkDiscrepancy]);
 
   const onSubmit = async (data: CompletionFormData) => {
     if (!schedule) return;
@@ -212,6 +209,10 @@ export default function CollectionCompletePage() {
     createMutation.mutate(recordData);
   };
 
+  if (!id) {
+    return null;
+  }
+
   if (scheduleLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -244,7 +245,7 @@ export default function CollectionCompletePage() {
           <h3 className="text-lg font-semibold text-gray-900">Agendamento não pode ser finalizado</h3>
           <p className="text-gray-500 mt-2">
             Este agendamento está com status <strong>{SCHEDULE_STATUS_LABELS[schedule.status as keyof typeof SCHEDULE_STATUS_LABELS]}</strong>.
-            Apenas agendamentos "Confirmado" ou "Em Andamento" podem ser finalizados.
+            Apenas agendamentos &quot;Confirmado&quot; ou &quot;Em Andamento&quot; podem ser finalizados.
           </p>
           <button onClick={() => router.push(`/schedules/${id}`)} className="btn-primary mt-4 inline-flex">
             <ArrowLeft className="w-4 h-4 mr-2" />
