@@ -9,7 +9,7 @@
 #### [📱 Protótipo](documentacao/connect_oil_doc/Prototipo.md)
 #### [👤 Personas](documentacao/connect_oil_doc/Personas.md)
 #### [🛡️ User Stories Éticas](documentacao/connect_oil_doc/User-Stories-Eticas.md)
-#### [🏎️ Sprint Review & Retrospective](documentacao/connect_oil_doc/Sprint-Review-e-Retrospective.md)
+#### [🏎️ Sprint Review & Retrospective](documentacao/connect_oil_doc/Sprint_Review_e_Restrospective.md)
 #### [📜 Guia de Entrevista com Stakeholders](documentacao/connect_oil_doc/Guia-Entrevista-Stakeholders.md)
 
 ---
