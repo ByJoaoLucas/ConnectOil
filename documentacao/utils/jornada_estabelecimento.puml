@@ -1,0 +1,132 @@
+@startuml
+title Connect Oil — Jornada do Estabelecimento (do cadastro ao comprovante)
+skinparam shadowing false
+skinparam dpi 120
+skinparam sequenceMessageAlign center
+skinparam maxMessageSize 220
+skinparam ParticipantPadding 18
+skinparam BoxPadding 8
+skinparam sequence {
+  GroupBackgroundColor #F5F9FF
+  LifeLineBorderColor #888888
+}
+skinparam ArrowFontSize 11
+skinparam NoteFontSize 11
+
+actor "Estabelecimento" as Est
+participant "App\n(Web / Mobile)" as App
+participant "Auth &\nIdentity" as Auth #DDEBF7
+participant "Coleta &\nSchedule" as Col #DDEBF7
+participant "Valuation &\nExchange" as Val #FFF2CC
+participant "ESG Audit &\nCertificate" as ESG #EAD1F0
+queue "Event Bus" as Bus #FCE4D6
+participant "Notification\nService" as Not #E7E6E6
+
+note over Est, Not : Todas as chamadas passam pelo API Gateway (HTTPS · JWT · rate limiting)
+
+== 1. Cadastro e acesso (US1, US8) ==
+Est -> App : informa nome, CNPJ/CPF, endereço, e-mail, telefone, senha
+App -> Auth : POST /auth/register
+Auth --> App : 201 conta criada\n[valida formato, unicidade e senha forte no servidor]
+Est -> App : usuário e senha
+App -> Auth : POST /auth/login
+alt credenciais válidas
+  Auth --> App : 200 JWT
+else 5 tentativas inválidas
+  Auth --> App : 423 conta bloqueada temporariamente
+  Auth -> Bus : conta.bloqueada
+  Bus -> Not : consome
+end
+
+== 2. Tela inicial ==
+App -> Auth : GET /auth/users/me
+App -> Col : GET /coletas?status=ativa
+App -> ESG : GET /esg/impacto
+App --> Est : nome, endereço, coleta atual e impacto (litros reciclados)
+
+== 3. Agendar coleta (US2, US6, US15) ==
+Est -> App : toca em "Agendar coleta"
+App -> Col : GET /coletas/orientacoes-armazenamento
+App -> Val : GET /cotacao/valor-litro
+Val --> App : base R$ por litro
+Est -> App : data, faixa de horário, volume (L), destino
+alt destino = vender
+  App -> Val : POST /cotacao/calcular (volume)
+  Val --> App : valor estimado
+else destino = trocar
+  App -> Val : GET /cotacao/produtos-troca
+  Val --> App : catálogo, preços e estoque
+  Est -> App : escolhe produtos (até o crédito)
+  App -> Val : POST /cotacao/calcular (volume, produtos)
+  Val --> App : crédito usado e saldo
+end
+App -> Col : POST /coletas (data, faixa, volume, tipo, produtos)
+Col -> Col : valida data futura e volume > 0\ncria coleta "Agendada"
+Col -> Bus : coleta.agendada
+Col --> App : 201 coleta #id
+Bus -> Not : consome
+Bus -> ESG : consome (histórico e auditoria)
+Not --> Est : push / e-mail "Coleta agendada"
+
+== 4. Acompanhar (US3, US12) ==
+Est -> App : "Acompanhar coleta"
+App -> Col : GET /coletas/{id}/status
+Col --> App : etapa atual e histórico de transições
+note right of Col : As mudanças vêm do fluxo do Coletor\n(ver diagrama 03):\ncoleta.atribuida → coleta.a_caminho
+Bus -> Not : coleta.atribuida / coleta.a_caminho
+Not --> Est : push / e-mail a cada mudança (< 1 min)
+App -> Not : GET /notificacoes
+Not --> App : lista de notificações
+
+== 5. Alterações no caminho ==
+opt Cancelar a coleta (US2)
+  Est -> App : "Cancelar coleta"
+  App -> Col : PATCH /coletas/{id}/cancelar
+  alt faltam 2h ou mais e a coleta não está em andamento
+    Col -> Bus : coleta.cancelada
+    Col --> App : 200 cancelada
+    Not --> Est : notificação de cancelamento
+  else prazo vencido ou coleta em andamento
+    Col --> App : 409 cancelamento indisponível
+  end
+end
+opt Armazenamento quase cheio (US11)
+  Est -> App : informa volume aproximado armazenado
+  App -> Col : POST /coletas/alerta-cheio
+  Col -> Bus : coleta.urgente
+  Bus -> Not : push imediato aos coletores
+  Col --> App : coleta com prioridade
+end
+opt Vazamento ou derramamento (US15)
+  App -> Col : POST /coletas/{id}/ocorrencias
+  Col -> Bus : ocorrencia.registrada
+end
+
+== 6. Conclusão da coleta (US5, US14) ==
+App -> Col : GET /coletas/{id}/codigo-confirmacao
+Col --> App : código (OTP) exibido ao Coletor
+note right of Col : O Coletor informa o peso real e o código\n(ver diagrama 03).\nConclusão e crédito/valor ocorrem em uma transação ACID.
+Bus -> Not : coleta.concluida
+Bus -> ESG : coleta.concluida
+ESG -> ESG : registra no histórico e prepara o comprovante
+ESG -> Bus : comprovante.gerado
+Bus -> Not : consome
+Not --> Est : "Coleta concluída — comprovante disponível"
+
+== 7. Histórico e comprovante (US7) ==
+Est -> App : "Histórico" (filtra por período)
+App -> ESG : GET /esg/historico?inicio=&fim=
+ESG --> App : data, litros, coletor e total acumulado
+Est -> App : "Gerar comprovante (PDF)"
+App -> ESG : POST /esg/comprovantes
+ESG --> App : 201 comprovante (PDF + código de verificação, ≤ 5 s)
+App -> ESG : GET /esg/comprovantes/{id}/download
+ESG --> App : PDF
+note right of ESG : Qualquer pessoa confere a autenticidade em\nGET /esg/comprovantes/validar/{hash}
+
+== 8. Encerrar conta (US1, LGPD) ==
+opt Excluir conta
+  App -> Auth : DELETE /auth/users/me
+  Auth --> App : 204 conta excluída
+end
+@enduml

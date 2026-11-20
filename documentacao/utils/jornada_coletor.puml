@@ -1,0 +1,116 @@
+@startuml
+title Connect Oil — Jornada do Coletor (do cadastro ao registro de coletas)
+skinparam shadowing false
+skinparam dpi 120
+skinparam sequenceMessageAlign center
+skinparam maxMessageSize 220
+skinparam ParticipantPadding 18
+skinparam sequence {
+  GroupBackgroundColor #F5F9FF
+  LifeLineBorderColor #888888
+}
+skinparam ArrowFontSize 11
+skinparam NoteFontSize 11
+
+actor "Coletor" as Col
+participant "Mobile App" as App
+participant "Auth &\nIdentity" as Auth #DDEBF7
+participant "Logistics &\nDispatch" as Log #E2F0D9
+participant "Coleta &\nSchedule" as Cs #DDEBF7
+participant "Valuation &\nExchange" as Val #FFF2CC
+queue "Event Bus" as Bus #FCE4D6
+participant "Notification\nService" as Not #E7E6E6
+actor "Estabelecimento" as Est
+
+note over Col, Est : Todas as chamadas passam pelo API Gateway (HTTPS · JWT · rate limiting)
+
+== 1. Cadastro, homologação e acesso (US1, US8, US15) ==
+Col -> App : dados pessoais, documentos e veículo
+App -> Auth : POST /auth/register (perfil coletor)
+App -> Auth : POST /auth/coletores/me/documentos
+Auth -> Bus : coletor.homologado (após validação)
+Bus -> Not : consome
+Not --> Col : push "cadastro homologado"
+App -> Auth : POST /auth/login
+Auth --> App : 200 JWT
+
+== 2. Tela inicial ==
+App -> Log : GET /logistica/resumo
+Log --> App : "145 litros coletados no mês"
+
+== 3. Coletas disponíveis (US4, US10, US11) ==
+Col -> App : "Coletas pendentes" (filtra por data e região)
+App -> Log : GET /logistica/coletas-disponiveis?regiao=&data=
+Log --> App : endereço, horário, volume e estabelecimento\n(urgentes no topo, com destaque)
+App -> Log : WS /logistica/stream
+note right of Log : A lista é atualizada em até 3 s\napós qualquer aceite ou atribuição.
+
+== 4. Aceitar a coleta (US4, US12, US15) ==
+Col -> App : "Aceitar"
+App -> Log : POST /logistica/coletas/{id}/aceitar
+Log -> Auth : valida perfil e homologação (in-process)
+alt coletor homologado e coleta ainda livre
+  Log -> Cs : atribuir (lock otimista)
+  Cs -> Bus : coleta.atribuida
+  Cs --> Log : ok
+  Log --> App : 200 coleta atribuída
+  Log -->> App : (stream) remove a coleta da lista dos demais
+  Bus -> Not : consome
+  Not --> Est : push / e-mail "Sua coleta foi aceita por um coletor"
+else coletor não homologado
+  Log --> App : 403
+else outro coletor aceitou antes
+  Log --> App : 409 coleta indisponível
+end
+
+== 5. Imprevisto (US2) ==
+opt Cancelar a coleta
+  Col -> App : "Cancelar" + justificativa
+  App -> Cs : PATCH /coletas/{id}/cancelar
+  Cs -> Bus : coleta.cancelada
+  Bus -> Not : consome
+  Not --> Est : notificação de cancelamento
+end
+
+== 6. Ir até o estabelecimento (US3) ==
+App -> Log : POST /logistica/coletas/{id}/iniciar-rota
+Log -> Cs : iniciar rota
+Cs -> Bus : coleta.a_caminho
+Bus -> Not : consome
+Not --> Est : push "Coletor a caminho"
+
+== 7. Pesagem e conclusão (US5, US6, US14) ==
+Col -> App : informa o peso/volume real
+App -> Log : POST /logistica/coletas/{id}/pesagem
+Log -> Val : POST /cotacao/calcular (volume real)
+Val --> Log : valor final ou crédito de troca
+alt diferença acima do limite
+  Log -> Cs : registrar divergência
+  Cs -> Bus : coleta.divergencia
+  Bus -> Not : consome
+  Not --> Est : "volume diferente do informado: valor ajustado"
+end
+Log --> App : valor calculado
+opt destino = troca por produtos
+  note over App : O Coletor entrega os produtos\nsolicitados no momento da coleta
+end
+Est --> Col : informa o código gerado no app (OTP) ou assina
+Col -> App : código / assinatura
+App -> Log : POST /logistica/coletas/{id}/concluir
+Log -> Cs : concluir
+Cs -> Cs : transação ACID: grava peso, valor/crédito\ne trava edição (sem pagamento duplicado)
+Cs -> Bus : coleta.concluida
+Cs --> Log : ok
+Log --> App : 200 coleta concluída
+Bus -> Not : consome
+Not --> Est : "Coleta concluída"
+
+== 8. Ocorrência e registro (US15, US7) ==
+opt Vazamento ou derramamento
+  App -> Cs : POST /coletas/{id}/ocorrencias
+  Cs -> Bus : ocorrencia.registrada
+end
+Col -> App : "Registro de coletas" (Todas | Concluídas | Canceladas)
+App -> Log : GET /logistica/coletas/minhas?status=
+Log --> App : coletas com data, volume e situação
+@enduml

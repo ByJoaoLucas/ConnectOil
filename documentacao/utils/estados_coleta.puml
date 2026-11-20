@@ -1,0 +1,43 @@
+@startuml
+title Connect Oil — Ciclo de vida da Coleta (máquina de estados)
+skinparam shadowing false
+skinparam dpi 140
+skinparam state {
+  BackgroundColor #F5F9FF
+  BorderColor #555555
+  BackgroundColor<<final>> #E2F0D9
+  BackgroundColor<<cancel>> #F8D7DA
+}
+skinparam ArrowFontSize 11
+
+state "Agendada" as Ag
+state "Atribuída" as At
+state "A caminho" as AC
+state "Concluída" as Co <<final>>
+state "Cancelada" as Ca <<cancel>>
+
+[*] --> Ag : Estabelecimento: POST /coletas\n[data futura, volume > 0]\n⇒ coleta.agendada
+Ag --> Ag : POST /coletas/alerta-cheio\n⇒ coleta.urgente (prioridade)
+Ag --> At : Coletor homologado: POST …/aceitar\n[lock otimista: só 1 coletor]\n⇒ coleta.atribuida
+At --> AC : Coletor: POST …/iniciar-rota\n⇒ coleta.a_caminho
+AC --> Co : Coletor: POST …/pesagem + …/concluir\n[código/assinatura do Estabelecimento]\n⇒ coleta.concluida (+ comprovante.gerado)
+AC --> AC : divergência de volume acima do limite\n⇒ coleta.divergencia (valor ajustado)
+
+Ag --> Ca : Estabelecimento: PATCH …/cancelar\n[até 2h antes do horário]\n⇒ coleta.cancelada
+At --> Ca : Estabelecimento (até 2h antes) ou\nColetor (com justificativa)\n⇒ coleta.cancelada
+AC --> Ca : Coletor (imprevisto, com justificativa)\n⇒ coleta.cancelada
+
+Co --> [*]
+Ca --> [*]
+
+note right of Co
+  Estado imutável: sem edição após a conclusão (US5).
+  Conclusão + pontos/valor em uma única transação ACID,
+  sem pagamento ou crédito duplicado (US14).
+end note
+note bottom of Ca
+  Para o Estabelecimento, o cancelamento fica
+  indisponível quando a coleta já está
+  "A caminho" ou "Concluída".
+end note
+@enduml

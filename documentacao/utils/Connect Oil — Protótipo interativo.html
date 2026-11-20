@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Connect Oil — Protótipo interativo</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#EDEAE3;--tx:#141413;--mut:#55534d;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1c1a;--tx:#f2efe6;--mut:#bdb9ad}}
+:root[data-theme="dark"]{--bg:#1d1c1a;--tx:#f2efe6;--mut:#bdb9ad}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:Lora,Georgia,serif;display:flex;flex-direction:column;align-items:center;gap:12px;padding:16px 12px 24px}
+.top{text-align:center;max-width:380px}
+.top h1{margin:0 0 4px;font-size:20px}
+.top p{margin:0;font-size:13px;color:var(--mut)}
+.ph{width:360px;height:740px;box-sizing:border-box;border:9px solid #111;border-radius:46px;background:#fff;color:#141413;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.isl{position:absolute;top:9px;left:50%;margin-left:-45px;width:90px;height:24px;background:#111;border-radius:13px;z-index:5}
+#app{flex:1;display:flex;flex-direction:column;min-height:0}
+.hd{background:#13704F;color:#fff;padding:42px 8px 8px 18px;display:flex;justify-content:space-between;align-items:center;font-size:17px;font-weight:600}
+.mn{background:none;border:0;color:#fff;font-size:22px;min-width:44px;min-height:44px;cursor:pointer}
+.bd{flex:1;overflow-y:auto;padding:14px 16px 22px;display:flex;flex-direction:column;gap:10px;font-size:14px}
+.hr{display:flex;align-items:center}
+.bell{position:relative;display:flex;align-items:center;justify-content:center}
+.bdg{position:absolute;left:2px;bottom:5px;min-width:18px;height:18px;box-sizing:border-box;padding:0 4px;border-radius:9px;background:#A4001B;color:#fff;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;border:1.5px solid #13704F}
+.nm{font-size:20px;font-weight:600;margin-top:4px}
+.sm{font-size:12px}
+.mut{color:#55534d}
+.card{background:#D9D9D9;border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:4px;font-size:13px;text-align:left}
+.lg{background:#E7F3EC}
+.big{font-size:16px}
+.top2{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.btn,.out{font:inherit;font-size:15px;color:#141413;min-height:46px;border-radius:12px;padding:10px 12px;cursor:pointer}
+.btn{background:#FFBA5A;border:0}
+.out{background:transparent;border:2px solid #141413}
+.out.red{border-color:#A4001B;color:#A4001B}
+.out.dash{border-style:dashed;font-size:13px}
+button:disabled{opacity:.45;cursor:not-allowed}
+.chip{border-radius:10px;padding:2px 10px;font-size:12px;white-space:nowrap;color:#141413}
+.o{background:#FFBA5A}.g{background:#7ED957}.r{background:#FF8080}.bl{background:#9CC9FF}.pu{background:#D3B8FF}
+label{font-size:12px;display:block;margin-bottom:3px}
+input,select{width:100%;box-sizing:border-box;background:#D9D9D9;border:0;border-radius:8px;padding:10px;font:inherit;font-size:14px;color:#141413;min-height:46px}
+.er{color:#A4001B;font-size:12px;margin-top:3px}
+.r2{display:flex;gap:8px}.r2>*{flex:1}
+.opt{cursor:pointer;border:0;font:inherit;font-weight:600;text-align:center;color:#141413}
+.sel{outline:2px solid #13704F;background:#E7F3EC}
+.stp{display:flex;align-items:center;gap:8px}
+.stp button{font:inherit;font-size:18px;border:1.5px solid #141413;background:#fff;color:#141413;border-radius:8px;width:34px;height:34px;cursor:pointer}
+.tl{display:flex;gap:10px;align-items:flex-start}
+.dot{width:16px;height:16px;border-radius:8px;border:2px solid #13704F;flex:none;margin-top:2px;box-sizing:border-box}
+.dot.f{background:#13704F}.dot.c{background:#FFBA5A;border-color:#141413}.dot.x{border-color:#A4001B;background:#FF8080}
+.ln{width:2px;height:20px;background:#13704F;margin:2px 0 2px 7px}.ln.p{background:#999}
+.lnk{background:none;border:0;padding:0;font:inherit;color:#A4001B;text-decoration:underline;cursor:pointer}
+.paper{background:#fff;border:1px solid #bbb;border-radius:6px;padding:12px;display:flex;flex-direction:column;gap:6px;font-size:13px}
+.code{border:1.5px dashed #141413;padding:8px;text-align:center}
+#toast{position:absolute;left:16px;right:16px;bottom:18px;background:#141413;color:#fff;border-radius:10px;padding:10px 12px;font-size:13px;text-align:center;opacity:0;pointer-events:none;transition:opacity .2s;z-index:6}
+#toast.on{opacity:1}
+@media (max-width:480px){body{padding:0;gap:0}.top{display:none}.ph{width:100%;height:100dvh;border:0;border-radius:0}.isl{display:none}.hd{padding-top:16px}}
+</style>
+</head>
+<body>
+<div class="top"><h1>Connect Oil - Protótipo interativo</h1><p>Simulação com dados fictícios. Para fazer o papel do coletor, use o botão “Avançar status” na tela Acompanhar coleta.</p></div>
+<div class="ph"><div class="isl"></div><div id="app"></div><div id="toast" role="status"></div></div>
+<script>
+var PRECO=1.2,HOJE='2026-10-24',FX=['08h–10h','10h–12h','14h–16h'];
+var ST=['Agendada','Atribuída','A caminho','Concluída'];
+var CH={'Agendada':'o','Atribuída':'bl','A caminho':'pu','Concluída':'g','Cancelada':'r'};
+var PROD=[{n:'Detergente 500 ml',p:4,s:20},{n:'Desengordurante 1 L',p:12,s:8},{n:'Sabão em barra (5 un.)',p:10,s:12},{n:'Esponjas (3 un.)',p:6,s:15}];
+var S={view:'home',form:{data:'2026-10-25',faixa:'08h–10h',vol:'',dest:'vender'},err:{},qty:[0,0,0,0],col:null,seq:1042,notes:[],
+hist:[{d:'2026-10-10',l:45,c:'Marcos'},{d:'2026-10-10',l:60,c:'Marcos'},{d:'2026-10-05',l:40,c:'Marcos'}],
+f1:'2026-10-01',f2:'2026-10-24',alvol:'45',alerr:'',sent:false};
+var fmt=function(n){return n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})};
+var L=function(n){return n.toLocaleString('pt-BR')};
+var fd=function(d){return d.split('-').reverse().join('/')};
+var clean=function(v){return String(v).replace(/[^0-9.,]/g,'')};
+var cn=function(c){return c.canc?'Cancelada':ST[c.st]};
+var active=function(c){return c&&!c.canc&&c.st<3};
+var chip=function(n){return '<span class="chip '+CH[n]+'">'+n+'</span>'};
+var tot=function(){return S.hist.reduce(function(a,x){return a+x.l},0)};
+var filt=function(){return S.hist.filter(function(x){return x.d>=S.f1&&x.d<=S.f2}).sort(function(a,b){return a.d<b.d?1:-1})};
+var dl=function(c){return String(parseInt(c.faixa)-2).padStart(2,'0')+'h00'};
+var credit=function(){return (+S.form.vol||0)*PRECO};
+var sel=function(){return PROD.reduce(function(a,p,i){return a+p.p*S.qty[i]},0)};
+function code(){var n=filt().reduce(function(a,x){return a+x.l*31+x.d.length},7919);return 'CO-'+n.toString(36).toUpperCase().padStart(4,'0').slice(-4)+'-'+(n*7%46656).toString(36).toUpperCase().padStart(3,'0')}
+function note(t,m){S.notes.unshift({t:t,m:m})}
+function toast(m){var e=document.getElementById('toast');e.textContent=m;e.className='on';setTimeout(function(){e.className=''},2200)}
+function mk(prod){var f=S.form;S.col={id:++S.seq,data:f.data,faixa:f.faixa,vol:+f.vol,dest:f.dest,prod:prod,st:0,canc:false,prio:false};
+note('Coleta agendada','Coleta de '+(+f.vol)+' L agendada para '+fd(f.data)+', '+f.faixa+'.');S.view='detalhes'}
+function head(t){var n=S.notes.length;return '<div class="hd"><span>'+t+'</span><span class="hr"><button class="mn bell" data-go="notificacoes" aria-label="Notificações'+(n?' ('+n+')':'')+'"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>'+(n?'<span class="bdg">'+n+'</span>':'')+'</button><button class="mn" data-go="home" aria-label="Ir para o início">☰</button></span></div>'}
+function back(t,v){return '<button class="out" data-go="'+(v||'home')+'">'+(t||'Voltar à tela inicial')+'</button>'}
+var V={
+home:function(){var c=S.col,T=tot();return head('Connect Oil')+'<div class="bd"><div class="nm">Churrascaria na Brasa</div><div class="sm mut">Rua Santa Elizabeth, 00 - Centro<br>Rio Tinto - PB</div>'
++'<div class="card"><b>Coleta atual</b>'+(c?'<div class="top2"><span>'+c.vol+' L · '+fd(c.data)+' · '+c.faixa+'</span>'+chip(cn(c))+'</div>'+(c.prio?'<span class="sm">Coleta prioritária</span>':''):'<span>Nenhuma coleta agendada.</span>')+'</div>'
+
++'<div class="card lg"><b>Seu impacto</b><span>'+L(T)+' L reciclados evitaram a contaminação de:</span><b class="big">'+L(T*25000)+' L de água</b><b class="big">'+L(T)+' m² de solo</b></div>'
++'<button class="btn" data-go="agendar">Agendar coleta</button><button class="btn" data-go="acompanhar">Acompanhar coleta</button>'
++'<button class="btn" data-go="historico">Histórico</button>'
++'<button class="out red" data-go="armazenamento">Armazenamento quase cheio</button></div>'},
+agendar:function(){var f=S.form,e=S.err,v=+f.vol>0?+f.vol:0;return head('Agendar coleta')+'<div class="bd">'
++'<div class="r2"><div><label for="d">Data</label><input id="d" type="date" min="'+HOJE+'" data-k="data" value="'+f.data+'"></div>'
++'<div><label for="h">Faixa de horário</label><select id="h" data-k="faixa">'+FX.map(function(x){return '<option'+(x==f.faixa?' selected':'')+'>'+x+'</option>'}).join('')+'</select></div></div>'
++(e.data?'<div class="er">'+e.data+'</div>':'')
++'<div><label for="v">Volume estimado (litros)</label><input id="v" type="number" step="any" min="0" inputmode="decimal" data-k="vol" value="'+clean(f.vol)+'">'+(e.vol?'<div class="er">'+e.vol+'</div>':'')+'</div>'
++'<div><div class="sm" style="margin-bottom:3px">Destino do óleo</div><div class="r2">'
++'<button class="card opt'+(f.dest=='vender'?' sel':'')+'" data-act="dest" data-v="vender" aria-pressed="'+(f.dest=='vender')+'">'+(f.dest=='vender'?'●':'○')+' Vender</button>'
++'<button class="card opt'+(f.dest=='trocar'?' sel':'')+'" data-act="dest" data-v="trocar" aria-pressed="'+(f.dest=='trocar')+'">'+(f.dest=='trocar'?'●':'○')+' Trocar</button></div></div>'
++'<div class="sm mut">Valor base: '+fmt(PRECO)+' por litro.<br>'+(f.dest=='vender'?'Estimativa':'Crédito estimado')+': '+fmt(v*PRECO)+'.<br>*o valor final usa os litros pesados na coleta*</div>'
++'<button class="btn" data-act="ag">'+(f.dest=='vender'?'Agendar coleta':'Escolher produtos')+'</button>'+back()+'</div>'},
+produtos:function(){var cr=credit(),s=sel();return head('Escolher produtos')+'<div class="bd"><div class="sm">Crédito: '+(+S.form.vol)+' L × '+fmt(PRECO)+' = <b>'+fmt(cr)+'</b></div>'
++PROD.map(function(p,i){var q=S.qty[i];return '<div class="card'+(q?' sel':'')+'"><div class="top2"><span>'+p.n+'<br><span class="sm">'+fmt(p.p)+' · '+p.s+' disponíveis</span></span><span class="stp"><button data-act="q" data-i="'+i+'" data-d="-1" aria-label="Diminuir">−</button><b>'+q+'</b><button data-act="q" data-i="'+i+'" data-d="1" aria-label="Aumentar">+</button></span></div></div>'}).join('')
++'<div class="sm">Selecionado: <b>'+fmt(s)+'</b> · Crédito restante: '+fmt(cr-s)+'</div>'
++'<button class="btn" data-act="solic"'+(s?'':' disabled')+'>Solicitar coleta</button>'+back('Voltar','agendar')+'</div>'},
+detalhes:function(){var c=S.col;if(!c)return head('Detalhes da coleta')+'<div class="bd"><div class="card">Nenhuma coleta agendada.</div>'+back()+'</div>';
+var n=cn(c);return head('Detalhes da coleta')+'<div class="bd"><div class="top2"><b style="font-size:17px">Coleta #'+c.id+'</b>'+chip(n)+'</div>'
++'<div class="card"><span>Data: '+fd(c.data)+'</span><span>Faixa: '+c.faixa+'</span><span>Volume estimado: '+c.vol+' L</span><span>Destino: '+(c.dest=='vender'?'venda para o coletor':'troca por produtos')+'</span>'+(c.dest=='vender'?'<span>Valor estimado: '+fmt(c.vol*PRECO)+'</span>':'')+(c.prio?'<span><b>Coleta prioritária</b></span>':'')+'</div>'
++(c.prod.length?'<div class="card"><b>Produtos solicitados</b>'+c.prod.map(function(p){return '<span>'+p.q+'× '+p.n+'</span>'}).join('')+'<span>Crédito usado: '+fmt(c.prod.reduce(function(a,p){return a+p.q*p.p},0))+' de '+fmt(c.vol*PRECO)+'</span></div><div class="sm">O coletor levará os produtos no momento da coleta.</div>':'')
++(!c.canc&&c.st<2?'<div class="sm mut">Cancelamento permitido até '+fd(c.data)+' às '+dl(c)+'</div><div style="flex:1"></div><button class="out" style="color:#a4001b" data-act="canc">Cancelar coleta</button>':'<div class="sm mut">'+(c.canc?'Esta coleta foi cancelada.':'Cancelamento indisponível: a coleta já está em andamento ou concluída.')+'</div><div style="flex:1"></div>')
++back()+'</div>'},
+acompanhar:function(){var c=S.col;if(!c)return head('Acompanhar coleta')+'<div class="bd"><div class="card">Nenhuma coleta para acompanhar. Agende uma coleta primeiro.</div><button class="btn" data-go="agendar">Agendar coleta</button>'+back()+'</div>';
+var n=cn(c),h='<div class="top2"><b style="font-size:17px">Coleta #'+c.id+'</b>'+chip(n)+'</div><div>';
+ST.forEach(function(s,i){var done=!c.canc&&c.st>i||(!c.canc&&c.st==3&&i==3),cur=!c.canc&&c.st==i&&i<3;
+var sub=i==0?'Agendamento registrado':i==1?(c.st>=1&&!c.canc||c.st>1?'Coletor: Marcos':'Aguardando o coletor'):i==2?(cur?'Chega entre '+c.faixa.replace('–',' e '):done?'Coletor foi até você':'Ainda não saiu'):(done?'Óleo coletado':'Aguardando a coleta');
+if(c.canc&&i>0&&i<3)return;
+if(c.canc&&i==3){h+='<div class="tl"><span class="dot x"></span><div><b>Cancelada</b><div class="sm">A coleta foi cancelada</div></div></div>';return}
+h+='<div class="tl"><span class="dot'+(done?' f':cur?' c':'')+'"></span><div><b>'+s+(cur?' (atual)':'')+'</b><div class="sm">'+sub+'</div></div></div>'+(i<3&&!(c.canc&&i==0)?'<div class="ln'+(c.st>i&&!c.canc?'':' p')+'"></div>':'')});
+return head('Acompanhar coleta')+'<div class="bd">'+h+'</div><button class="out dash" data-act="adv"'+(active(c)?'':' disabled')+'>Avançar status (demonstração)</button><div style="height:2px"></div>'+back()+'</div>'},
+notificacoes:function(){return head('Notificações')+'<div class="bd">'+(S.notes.length?S.notes.map(function(x){return '<div class="card"><b>'+x.t+'</b><span>'+x.m+'</span></div>'}).join(''):'<div class="card">Nenhuma notificação ainda. Você recebe um aviso a cada mudança de status.</div>')+back()+'</div>'},
+historico:function(){var h=filt(),T=h.reduce(function(a,x){return a+x.l},0);return head('Histórico')+'<div class="bd">'
++'<div class="r2"><div><label for="f1">De</label><input id="f1" type="date" data-k="f1" value="'+S.f1+'"></div><div><label for="f2">Até</label><input id="f2" type="date" data-k="f2" value="'+S.f2+'"></div></div>'
++'<div class="card lg"><b class="big">'+L(T)+' L descartados</b><span>Total acumulado no período</span></div>'
++(h.length?h.map(function(x){return '<div class="card"><b>'+fd(x.d)+' · '+L(x.l)+' L</b><span>Coletor: '+x.c+'</span></div>'}).join(''):'<div class="card">Nenhuma coleta concluída neste período.</div>')
++'<button class="btn" data-go="comprovante"'+(h.length?'':' disabled')+'>Gerar comprovante (PDF)</button>'+back()+'</div>'},
+comprovante:function(){var h=filt(),T=h.reduce(function(a,x){return a+x.l},0);return head('Comprovante')+'<div class="bd"><div class="paper"><b style="font-size:16px;text-align:center">Comprovante de descarte</b><span>Estabelecimento: Churrascaria na Brasa</span><span>Período: '+fd(S.f1)+' a '+fd(S.f2)+'</span>'
++'<div style="border-top:1px solid #bbb;padding-top:6px">'+h.map(function(x){return fd(x.d).slice(0,5)+' · '+L(x.l)+' L · '+x.c}).join('<br>')+'</div><b>Total: '+L(T)+' L</b><div class="code">Código de verificação<br><b>'+code()+'</b></div></div>'
++'<button class="btn" data-act="pdf">Baixar PDF</button>'+back('Voltar ao histórico','historico')+'</div>'},
+armazenamento:function(){return head('Armazenamento')+'<div class="bd">'+(S.sent?'<div class="card lg" style="padding:14px;gap:8px"><b style="font-size:16px">Alerta enviado</b><span>O coletor foi avisado e a sua coleta passa a ter prioridade.</span></div><button class="btn" data-go="detalhes">Ver coleta</button>'
+:'<div class="card" style="background:#FFE0B2;padding:14px;gap:8px"><b style="font-size:15px">Avisar que o armazenamento está quase cheio?</b><span>O coletor será avisado que o armazenamento está quase cheio e poderá vir coletar o óleo assim que possível.</span></div>'
++'<div><label for="av">Volume aproximado armazenado (litros)</label><input id="av" type="number" step="any" min="0" inputmode="decimal" data-k="alvol" value="'+clean(S.alvol)+'">'+(S.alerr?'<div class="er">'+S.alerr+'</div>':'')+'</div><button class="btn" data-act="alerta">Enviar alerta</button>')+back(S.sent?'Voltar à tela inicial':'Cancelar')+'</div>'}
+};
+function render(){document.getElementById('app').innerHTML=V[S.view]()}
+function go(v){S.view=v;if(v=='armazenamento')S.sent=false;render();var b=document.querySelector('.bd');if(b)b.scrollTop=0}
+document.addEventListener('click',function(e){
+var g=e.target.closest('[data-go]');if(g){go(g.dataset.go);return}
+var a=e.target.closest('[data-act]');if(!a||a.disabled)return;var k=a.dataset.act,f=S.form,c=S.col;
+if(k=='dest'){f.dest=a.dataset.v;render()}
+else if(k=='ag'){S.err={};var v=+f.vol;if(!f.data||f.data<HOJE)S.err.data='Escolha uma data a partir de hoje.';if(!(v>0))S.err.vol='Informe um volume maior que 0.';
+if(S.err.data||S.err.vol){render();return}
+if(f.dest=='vender'){mk([]);go('detalhes')}else{S.qty=[0,0,0,0];go('produtos')}}
+else if(k=='q'){var i=+a.dataset.i,d=+a.dataset.d,q=S.qty[i]+d;if(q<0||q>PROD[i].s||(d>0&&sel()+PROD[i].p>credit()+1e-9))return;S.qty[i]=q;var sc=document.querySelector('.bd').scrollTop;render();document.querySelector('.bd').scrollTop=sc}
+else if(k=='solic'){mk(PROD.map(function(p,i){return {n:p.n,p:p.p,q:S.qty[i]}}).filter(function(p){return p.q>0}));go('detalhes');toast('Coleta solicitada com troca')}
+else if(k=='canc'){if(c&&!c.canc&&c.st<2){c.canc=true;note('Coleta cancelada','A coleta #'+c.id+' foi cancelada.');render();toast('Coleta cancelada')}}
+else if(k=='adv'){if(!active(c))return;c.st++;var n=ST[c.st];
+if(c.st==1)note('Coleta atribuída','Marcos foi designado para a sua coleta de '+fd(c.data)+'.');
+if(c.st==2)note('Coleta a caminho','Marcos chega entre '+c.faixa.replace('–',' e ')+' para recolher o óleo.');
+if(c.st==3){note('Coleta concluída','Coleta de '+c.vol+' L concluída.');S.hist.unshift({d:c.data,l:c.vol,c:'Marcos'})}
+render();toast('Status: '+n+' (notificação enviada)')}
+else if(k=='pdf'){toast('PDF gerado (simulação)')}
+else if(k=='alerta'){var vv=+S.alvol;if(!(vv>0)){S.alerr='Informe um volume maior que 0.';render();return}S.alerr='';
+if(active(c))c.prio=true;else{S.form.data=HOJE;S.form.faixa='08h–10h';S.form.vol=String(vv);S.form.dest='vender';mk([]);S.col.prio=true;S.view='armazenamento'}
+note('Alerta de armazenamento','O coletor foi avisado e a coleta #'+S.col.id+' tem prioridade.');S.sent=true;render();toast('Alerta enviado')}
+});
+document.addEventListener('input',function(e){var k=e.target.dataset&&e.target.dataset.k;if(!k)return;
+if(k=='f1'||k=='f2'){S[k]=e.target.value;render();return}
+if(k=='alvol'){S.alvol=e.target.value;return}
+S.form[k]=e.target.value});
+render();
+</script>
+</body>
+</html>

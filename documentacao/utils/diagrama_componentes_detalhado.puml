@@ -1,0 +1,180 @@
+@startuml
+title Connect Oil — Diagrama de Componentes (UML 2.5)\nMonólito Modular Orientado a Eventos · contratos de API por jornada
+top to bottom direction
+skinparam componentStyle uml2
+skinparam shadowing false
+skinparam dpi 130
+skinparam defaultFontSize 12
+skinparam ranksep 60
+skinparam nodesep 40
+skinparam ArrowFontSize 11
+skinparam NoteFontSize 11
+skinparam component {
+  BackgroundColor<<Cliente>> #F5F5F5
+  BackgroundColor<<Core>> #DDEBF7
+  BackgroundColor<<Operacional>> #E2F0D9
+  BackgroundColor<<Regras>> #FFF2CC
+  BackgroundColor<<Suporte>> #EAD1F0
+  BackgroundColor<<Transversal>> #E7E6E6
+  BackgroundColor<<Externo>> #FFFFFF
+  BorderColor #555555
+}
+skinparam queue {
+  BackgroundColor #FCE4D6
+  BorderColor #C55A11
+}
+skinparam note {
+  BackgroundColor #FFFBE6
+  BorderColor #B8A24A
+}
+
+actor "Estabelecimento" as Est
+actor "Coletor" as Col
+
+rectangle "Camada de Cliente" as Cli {
+  component "Web App (React)\nEstabelecimento" as Web <<Cliente>>
+  component "Mobile App (React Native)\nEstabelecimento · Coletor" as Mob <<Cliente>>
+}
+
+component "API Gateway & Edge\nTLS/HTTPS · valida JWT · roteamento · rate limiting" as GW <<Transversal>>
+
+rectangle "Connect Oil Backend — Monólito Modular (1 deploy)" as Mono {
+
+  component "Auth & Identity (IAM)\nJWT/OAuth2 · RBAC · bloqueio após 5 tentativas\nhomologação do coletor · LGPD" as Auth <<Core>>
+  () "IAuthAPI\n/api/v1/auth" as IAuth
+  Auth -up- IAuth
+  note right of IAuth
+    **Cadastro e acesso (US1, US8, US15)**
+    POST /auth/register
+    POST /auth/login
+    GET /auth/users/me
+    DELETE /auth/users/me
+    POST /auth/coletores/me/documentos
+    GET /auth/coletores/me/homologacao
+  end note
+
+  component "Coleta & Schedule\nmáquina de estados · cancelamento ≤ 2h\nfila de prioridade · ocorrências" as Coleta <<Core>>
+  () "IColetaAPI\n/api/v1/coletas" as IColeta
+  () "IColetaEstado\n(in-process)" as IEst
+  Coleta -up- IColeta
+  Coleta -up- IEst
+  note right of IColeta
+    **Agendar, acompanhar, cancelar (US2, US3, US11, US15)**
+    GET  /coletas/orientacoes-armazenamento
+    POST /coletas
+    GET  /coletas?status=
+    GET  /coletas/{id}
+    GET  /coletas/{id}/status
+    GET  /coletas/{id}/codigo-confirmacao
+    PATCH /coletas/{id}/cancelar
+    POST /coletas/alerta-cheio
+    POST /coletas/{id}/ocorrencias
+  end note
+
+  component "Logistics & Dispatch\nfiltros · aceite concorrente\npesagem + OTP · rota" as Logi <<Operacional>>
+  () "ILogisticaAPI\n/api/v1/logistica" as ILogi
+  Logi -up- ILogi
+  note right of ILogi
+    **Jornada do coletor (US4, US5, US15)**
+    GET  /logistica/resumo
+    GET  /logistica/coletas-disponiveis?regiao=&data=
+    WS   /logistica/stream
+    POST /logistica/coletas/{id}/aceitar
+    POST /logistica/coletas/{id}/iniciar-rota
+    POST /logistica/coletas/{id}/pesagem
+    POST /logistica/coletas/{id}/concluir
+    GET  /logistica/coletas/minhas?status=
+  end note
+
+  component "Valuation & Exchange\nvalor do litro · catálogo de troca" as Val <<Regras>>
+  () "ICotacaoAPI\n/api/v1/cotacao" as ICot
+  Val -up- ICot
+  note right of ICot
+    **Venda ou troca (US6)**
+    GET  /cotacao/valor-litro
+    GET  /cotacao/produtos-troca
+    POST /cotacao/calcular
+  end note
+
+  component "ESG Audit & Certificate\nhistórico · impacto · PDF + hash\nlog de auditoria" as ESG <<Suporte>>
+  () "IESGAPI\n/api/v1/esg" as IESG
+  ESG -up- IESG
+  note right of IESG
+    **Histórico, impacto e comprovante (US7, US14)**
+    GET  /esg/historico?inicio=&fim=
+    GET  /esg/impacto
+    POST /esg/comprovantes
+    GET  /esg/comprovantes/{id}/download
+    GET  /esg/comprovantes/validar/{hash}  (público)
+    GET  /esg/auditoria?entidade=&id=  (auditor)
+  end note
+}
+
+queue "Event Message Bus\n(RabbitMQ / Kafka) — Pub/Sub" as Bus
+
+component "Notification Service\nworker push/e-mail · caixa de notificações\nSLA < 1 min" as Notif <<Transversal>>
+() "INotificacaoAPI\n/api/v1/notificacoes" as INotif
+Notif -up- INotif
+note right of INotif
+  **Notificações (US3, US12)**
+  GET   /notificacoes
+  PATCH /notificacoes/{id}/lida
+  POST  /notificacoes/dispositivos
+end note
+
+component "Provedores Push / E-mail\n(FCM · APNs · SMTP)" as Ext <<Externo>>
+database "PostgreSQL\nPrimary DB (ACID)" as DB
+component "Backup diário\n+ restauração" as Bkp <<Transversal>>
+
+Est --> Web
+Est --> Mob
+Col --> Mob
+Web --> GW : HTTPS/REST
+Mob --> GW : HTTPS/REST
+
+GW ..> IAuth
+GW ..> IColeta
+GW ..> ILogi
+GW ..> ICot
+GW ..> IESG
+GW ..> INotif
+
+Logi ..> IAuth : RBAC /\nhomologação
+Logi ..> IEst : atribuir · iniciar ·\nregistrar pesagem · concluir
+Logi ..> ICot : valor na\npesagem
+Coleta ..> ICot : estimativa venda/troca\ne cálculo na conclusão
+
+Coleta --> Bus : publica coleta.* ,\nocorrencia.registrada
+Auth --> Bus : publica conta.bloqueada,\ncoletor.homologado
+ESG --> Bus : publica\ncomprovante.gerado
+Bus --> Notif : consome
+Bus --> ESG : consome\n(histórico e auditoria)
+Notif ..> Ext : envia
+
+Mono --> DB : leitura/escrita
+Notif --> DB : caixa de notificações
+Bkp ..> DB : backup
+
+note right of Bus
+  **Catálogo de eventos**
+  coleta.agendada · coleta.atribuida
+  coleta.a_caminho · coleta.concluida
+  coleta.cancelada · coleta.urgente
+  coleta.divergencia
+  ocorrencia.registrada
+  comprovante.gerado
+  conta.bloqueada · coletor.homologado
+end note
+
+legend bottom right
+  |= Estereótipo |= Papel |
+  | «Core» (azul) | núcleo do negócio |
+  | «Operacional» (verde) | operação de campo |
+  | «Regras» (amarelo) | motor de regras |
+  | «Suporte» (lilás) | histórico e auditoria |
+  | «Transversal» (cinza) | infraestrutura comum |
+  | fila (laranja) | mensageria assíncrona |
+  Linha tracejada = dependência (interface requerida)
+  Linha sólida = fluxo / interface fornecida
+endlegend
+@enduml
