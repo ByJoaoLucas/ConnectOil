@@ -56,4 +56,9 @@ public interface CollectionScheduleRepository extends JpaRepository<CollectionSc
 
     @Query("SELECT COUNT(s) FROM CollectionSchedule s WHERE s.scheduledDate < :today AND s.status = :pendingStatus")
     long countOverdueSchedules(@Param("today") LocalDate today, @Param("pendingStatus") CollectionSchedule.ScheduleStatus pendingStatus);
+
+    // US02 - Find schedules by establishment (through collection point)
+    Page<CollectionSchedule> findByCollectionPoint_Establishment(User establishment, Pageable pageable);
+
+    List<CollectionSchedule> findByCollectionPoint_Establishment(User establishment);
 }

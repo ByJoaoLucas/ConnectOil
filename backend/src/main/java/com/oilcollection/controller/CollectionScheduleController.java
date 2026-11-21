@@ -31,7 +31,7 @@ public class CollectionScheduleController {
     private final CollectionScheduleService scheduleService;
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR', 'ESTABLISHMENT')")
     @Operation(summary = "Get all schedules with pagination")
     public ResponseEntity<Page<CollectionScheduleDTO>> getAllSchedules(
             @PageableDefault(size = 20) Pageable pageable) {
@@ -39,14 +39,14 @@ public class CollectionScheduleController {
     }
 
     @GetMapping("/list")
-    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR', 'ESTABLISHMENT')")
     @Operation(summary = "Get all schedules as list")
     public ResponseEntity<List<CollectionScheduleDTO>> getAllSchedulesList() {
         return ResponseEntity.ok(scheduleService.getAllSchedules());
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR', 'ESTABLISHMENT')")
     @Operation(summary = "Get schedule by ID")
     public ResponseEntity<CollectionScheduleDTO> getScheduleById(@PathVariable UUID id) {
         return ResponseEntity.ok(scheduleService.getScheduleById(id));
@@ -71,14 +71,14 @@ public class CollectionScheduleController {
     }
 
     @GetMapping("/point/{pointId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR', 'ESTABLISHMENT')")
     @Operation(summary = "Get schedules by collection point")
     public ResponseEntity<List<CollectionScheduleDTO>> getSchedulesByPoint(@PathVariable UUID pointId) {
         return ResponseEntity.ok(scheduleService.getSchedulesByPoint(pointId));
     }
 
     @GetMapping("/date/{date}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR', 'ESTABLISHMENT')")
     @Operation(summary = "Get schedules by date")
     public ResponseEntity<List<CollectionScheduleDTO>> getSchedulesByDate(@PathVariable LocalDate date) {
         return ResponseEntity.ok(scheduleService.getSchedulesByDate(date));
@@ -106,6 +106,23 @@ public class CollectionScheduleController {
             @RequestParam LocalDate start,
             @RequestParam LocalDate end) {
         return ResponseEntity.ok(scheduleService.getSchedulesByCollectorAndDateRange(collectorId, start, end));
+    }
+
+    // US02 - Establishment endpoints
+    @GetMapping("/my-schedules")
+    @PreAuthorize("hasRole('ESTABLISHMENT')")
+    @Operation(summary = "Get schedules for establishment's own points")
+    public ResponseEntity<Page<CollectionScheduleDTO>> getMySchedules(
+            @AuthenticationPrincipal User currentUser,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(scheduleService.getSchedulesByEstablishment(currentUser.getId(), pageable));
+    }
+
+    @GetMapping("/my-schedules/list")
+    @PreAuthorize("hasRole('ESTABLISHMENT')")
+    @Operation(summary = "Get schedules for establishment's own points as list")
+    public ResponseEntity<List<CollectionScheduleDTO>> getMySchedulesList(@AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(scheduleService.getSchedulesByEstablishment(currentUser.getId()));
     }
 
     @PostMapping
@@ -195,8 +212,8 @@ public class CollectionScheduleController {
     }
 
     @PutMapping("/{id}/cancel")
-    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
-    @Operation(summary = "Cancel schedule (must be at least 2 hours before scheduled time)")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR', 'ESTABLISHMENT')")
+    @Operation(summary = "Cancel schedule (establishment: at least 2h before; collector: anytime with reason)")
     public ResponseEntity<CollectionScheduleDTO> cancelSchedule(
             @PathVariable UUID id,
             @RequestParam String reason,

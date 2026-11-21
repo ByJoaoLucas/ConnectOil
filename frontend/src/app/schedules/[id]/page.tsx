@@ -25,8 +25,13 @@ import {
   ChevronUp,
   RefreshCw,
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+
+// Helper para parsear data YYYY-MM-DD como data local (evita bug de fuso UTC)
+function parseLocalDate(dateString: string): Date {
+  return parse(dateString, 'yyyy-MM-dd', new Date());
+}
 import { SCHEDULE_STATUS_LABELS, SCHEDULE_STATUS_COLORS, ScheduleStatus } from '@/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -282,7 +287,7 @@ export default function ScheduleDetailPage() {
                   <div className="mt-1 flex items-center space-x-2">
                     <Calendar className="w-5 h-5 text-gray-400" />
                     <span className="font-medium text-gray-900">
-                      {format(new Date(schedule.scheduledDate), 'EEEE, dd/MM/yyyy', { locale: ptBR })}
+                      {format(parseLocalDate(schedule.scheduledDate), 'EEEE, dd/MM/yyyy', { locale: ptBR })}
                     </span>
                   </div>
                 </div>

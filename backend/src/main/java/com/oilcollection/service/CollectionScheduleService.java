@@ -20,6 +20,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 
@@ -106,20 +107,67 @@ public class CollectionScheduleService {
                 .stream().map(CollectionScheduleDTO::fromEntity).toList();
     }
 
+    // US02 - Get schedules for establishment (only their points)
+    @Transactional(readOnly = true)
+    public Page<CollectionScheduleDTO> getSchedulesByEstablishment(UUID establishmentId, Pageable pageable) {
+        User establishment = userRepository.findById(establishmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Establishment", "id", establishmentId));
+        if (establishment.getRole() != User.UserRole.ESTABLISHMENT) {
+            throw new BusinessException("Usuário deve ter o papel de ESTABELECIMENTO", "INVALID_ESTABLISHMENT_ROLE");
+        }
+        return scheduleRepository.findByCollectionPoint_Establishment(establishment, pageable)
+                .map(CollectionScheduleDTO::fromEntity);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CollectionScheduleDTO> getSchedulesByEstablishment(UUID establishmentId) {
+        User establishment = userRepository.findById(establishmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Establishment", "id", establishmentId));
+        if (establishment.getRole() != User.UserRole.ESTABLISHMENT) {
+            throw new BusinessException("Usuário deve ter o papel de ESTABELECIMENTO", "INVALID_ESTABLISHMENT_ROLE");
+        }
+        return scheduleRepository.findByCollectionPoint_Establishment(establishment)
+                .stream().map(CollectionScheduleDTO::fromEntity).toList();
+    }
+
     @Transactional
     public CollectionScheduleDTO createSchedule(CollectionScheduleDTO request, User createdBy, String ipAddress, String userAgent) {
         CollectionPoint point = pointRepository.findById(request.getCollectionPointId())
                 .orElseThrow(() -> new ResourceNotFoundException("Collection Point", "id", request.getCollectionPointId()));
 
-        User collector = userRepository.findById(request.getCollectorId())
-                .orElseThrow(() -> new ResourceNotFoundException("Collector", "id", request.getCollectorId()));
+        // US02 - ESTABLISHMENT creates schedule without collector
+        User collector = null;
+        boolean isEstablishment = createdBy.getRole() == User.UserRole.ESTABLISHMENT;
 
-        if (collector.getRole() != User.UserRole.COLLECTOR) {
-            throw new BusinessException("User must have COLLECTOR role", "INVALID_COLLECTOR_ROLE");
+        if (isEstablishment) {
+            // Establishment can only create schedules on their own points
+            if (point.getEstablishment() == null || !point.getEstablishment().getId().equals(createdBy.getId())) {
+                throw new BusinessException("Você só pode criar agendamentos nos seus próprios pontos de coleta", "POINT_NOT_OWNED");
+            }
+            // Collector remains null, status will be PENDING
+        } else {
+            // ADMIN or COLLECTOR must provide collector
+            if (request.getCollectorId() == null) {
+                throw new BusinessException("Coletor é obrigatório", "COLLECTOR_REQUIRED");
+            }
+            collector = userRepository.findById(request.getCollectorId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Collector", "id", request.getCollectorId()));
+
+            if (collector.getRole() != User.UserRole.COLLECTOR) {
+                throw new BusinessException("Usuário deve ter o papel de COLETOR", "INVALID_COLLECTOR_ROLE");
+            }
+
+            if (point.getCollector() != null && !point.getCollector().getId().equals(collector.getId())) {
+                throw new BusinessException("Este ponto de coleta está atribuído a outro coletor", "POINT_ASSIGNED_TO_OTHER");
+            }
         }
 
-        if (point.getCollector() != null && !point.getCollector().getId().equals(collector.getId())) {
-            throw new BusinessException("This collection point is assigned to a different collector", "POINT_ASSIGNED_TO_OTHER");
+        // Validar se data/hora não é no passado (fuso horário America/Sao_Paulo)
+        ZoneId saoPauloZone = ZoneId.of("America/Sao_Paulo");
+        LocalDateTime nowSaoPaulo = LocalDateTime.now(saoPauloZone);
+        LocalDateTime scheduledDateTime = request.getScheduledDate().atTime(request.getStartTime());
+        if (scheduledDateTime.isBefore(nowSaoPaulo)) {
+            throw new BusinessException("Não é possível criar um agendamento para uma data ou horário no passado.", "SCHEDULE_IN_PAST");
         }
 
         // Validate sale type and price
@@ -140,7 +188,7 @@ public class CollectionScheduleService {
 
         CollectionSchedule schedule = new CollectionSchedule();
         schedule.setCollectionPoint(point);
-        schedule.setCollector(collector);
+        schedule.setCollector(collector); // Can be null for ESTABLISHMENT
         schedule.setScheduledDate(request.getScheduledDate());
         schedule.setStartTime(request.getStartTime());
         schedule.setEndTime(request.getEndTime());
@@ -160,8 +208,10 @@ public class CollectionScheduleService {
         auditLogService.logCreate("COLLECTION_SCHEDULE", savedSchedule.getId(), createdBy,
                 toJson(savedSchedule), ipAddress, userAgent);
 
-        // Notify collector
-        notificationService.notifyScheduleCreated(collector.getId(), savedSchedule.getId(), point.getName());
+        // Notify collector only if collector exists
+        if (collector != null) {
+            notificationService.notifyScheduleCreated(collector.getId(), savedSchedule.getId(), point.getName());
+        }
 
         log.info("Schedule created for point {} on {} by {}", point.getName(), request.getScheduledDate(), createdBy.getEmail());
         return CollectionScheduleDTO.fromEntity(savedSchedule);
@@ -174,7 +224,7 @@ public class CollectionScheduleService {
 
         if (schedule.getStatus() == CollectionSchedule.ScheduleStatus.COMPLETED ||
             schedule.getStatus() == CollectionSchedule.ScheduleStatus.CANCELLED) {
-            throw new BusinessException("Cannot update completed or cancelled schedule", "SCHEDULE_IMMUTABLE");
+            throw new BusinessException("Não é possível atualizar agendamento concluído ou cancelado", "SCHEDULE_IMMUTABLE");
         }
 
         String oldValues = toJson(schedule);
@@ -226,14 +276,14 @@ public class CollectionScheduleService {
                 .orElseThrow(() -> new ResourceNotFoundException("Collection Schedule", "id", id));
 
         if (schedule.getStatus() != CollectionSchedule.ScheduleStatus.PENDING) {
-            throw new BusinessException("Only pending schedules can be assigned", "INVALID_STATUS_TRANSITION");
+            throw new BusinessException("Apenas agendamentos pendentes podem ser atribuídos", "INVALID_STATUS_TRANSITION");
         }
 
         User collector = userRepository.findById(collectorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collector", "id", collectorId));
 
         if (collector.getRole() != User.UserRole.COLLECTOR) {
-            throw new BusinessException("User must have COLLECTOR role", "INVALID_COLLECTOR_ROLE");
+            throw new BusinessException("Usuário deve ter o papel de COLETOR", "INVALID_COLLECTOR_ROLE");
         }
 
         String oldValues = toJson(schedule);
@@ -261,12 +311,12 @@ public class CollectionScheduleService {
                 .orElseThrow(() -> new ResourceNotFoundException("Collection Schedule", "id", id));
 
         // Collector can only confirm their own pending schedules
-        if (!schedule.getCollector().getId().equals(confirmedBy.getId())) {
-            throw new BusinessException("You can only confirm schedules assigned to you", "UNAUTHORIZED_ACTION");
+        if (schedule.getCollector() == null || !schedule.getCollector().getId().equals(confirmedBy.getId())) {
+            throw new BusinessException("Você só pode confirmar agendamentos atribuídos a você", "UNAUTHORIZED_ACTION");
         }
 
         if (schedule.getStatus() != CollectionSchedule.ScheduleStatus.PENDING) {
-            throw new BusinessException("Only pending schedules can be confirmed", "INVALID_STATUS_TRANSITION");
+            throw new BusinessException("Apenas agendamentos pendentes podem ser confirmados", "INVALID_STATUS_TRANSITION");
         }
 
         String oldValues = toJson(schedule);
@@ -280,12 +330,10 @@ public class CollectionScheduleService {
         auditLogService.logStatusChange("COLLECTION_SCHEDULE", updatedSchedule.getId(), confirmedBy,
                 oldValues, toJson(updatedSchedule), ipAddress, userAgent);
 
-        // Notify establishment (find user by contact email)
-        if (schedule.getCollectionPoint().getContactEmail() != null) {
-            userRepository.findByEmail(schedule.getCollectionPoint().getContactEmail())
-                    .ifPresent(establishmentUser ->
-                        notificationService.notifyScheduleAssigned(establishmentUser.getId(), updatedSchedule.getId(), confirmedBy.getName())
-                    );
+        // Notify establishment (use point's establishment)
+        if (schedule.getCollectionPoint().getEstablishment() != null) {
+            notificationService.notifyScheduleAssigned(schedule.getCollectionPoint().getEstablishment().getId(),
+                    updatedSchedule.getId(), confirmedBy.getName());
         }
 
         log.info("Schedule confirmed by collector {}: {}", confirmedBy.getName(), updatedSchedule.getId());
@@ -299,7 +347,7 @@ public class CollectionScheduleService {
 
         if (schedule.getStatus() != CollectionSchedule.ScheduleStatus.ASSIGNED &&
             schedule.getStatus() != CollectionSchedule.ScheduleStatus.PENDING) {
-            throw new BusinessException("Schedule must be assigned or pending to start", "INVALID_STATUS_TRANSITION");
+            throw new BusinessException("Agendamento deve estar atribuído ou pendente para iniciar", "INVALID_STATUS_TRANSITION");
         }
 
         String oldValues = toJson(schedule);
@@ -313,12 +361,9 @@ public class CollectionScheduleService {
         auditLogService.logStatusChange("COLLECTION_SCHEDULE", updatedSchedule.getId(), startedBy,
                 oldValues, toJson(updatedSchedule), ipAddress, userAgent);
 
-        // Notify establishment (find user by contact email)
-        if (schedule.getCollectionPoint().getContactEmail() != null) {
-            userRepository.findByEmail(schedule.getCollectionPoint().getContactEmail())
-                    .ifPresent(establishmentUser ->
-                        notificationService.notifyScheduleEnRoute(establishmentUser.getId(), updatedSchedule.getId())
-                    );
+        // Notify establishment (use point's establishment)
+        if (schedule.getCollectionPoint().getEstablishment() != null) {
+            notificationService.notifyScheduleEnRoute(schedule.getCollectionPoint().getEstablishment().getId(), updatedSchedule.getId());
         }
 
         log.info("Schedule started (en route): {}", updatedSchedule.getId());
@@ -331,7 +376,7 @@ public class CollectionScheduleService {
                 .orElseThrow(() -> new ResourceNotFoundException("Collection Schedule", "id", id));
 
         if (schedule.getStatus() != CollectionSchedule.ScheduleStatus.EN_ROUTE) {
-            throw new BusinessException("Schedule must be en route to arrive at point", "INVALID_STATUS_TRANSITION");
+            throw new BusinessException("Agendamento deve estar em rota para chegar ao ponto", "INVALID_STATUS_TRANSITION");
         }
 
         String oldValues = toJson(schedule);
@@ -354,7 +399,7 @@ public class CollectionScheduleService {
                 .orElseThrow(() -> new ResourceNotFoundException("Collection Schedule", "id", id));
 
         if (schedule.getStatus() != CollectionSchedule.ScheduleStatus.IN_PROGRESS) {
-            throw new BusinessException("Schedule must be in progress to complete", "INVALID_STATUS_TRANSITION");
+            throw new BusinessException("Agendamento deve estar em andamento para concluir", "INVALID_STATUS_TRANSITION");
         }
 
         String oldValues = toJson(schedule);
@@ -368,13 +413,14 @@ public class CollectionScheduleService {
         auditLogService.logStatusChange("COLLECTION_SCHEDULE", updatedSchedule.getId(), completedBy,
                 oldValues, toJson(updatedSchedule), ipAddress, userAgent);
 
-        // Notify establishment and collector
-        notificationService.notifyScheduleCompleted(schedule.getCollector().getId(), updatedSchedule.getId());
-        if (schedule.getCollectionPoint().getContactEmail() != null) {
-            userRepository.findByEmail(schedule.getCollectionPoint().getContactEmail())
-                    .ifPresent(establishmentUser ->
-                        notificationService.notifyScheduleCompleted(establishmentUser.getId(), updatedSchedule.getId())
-                    );
+        // Notify collector only if collector exists
+        if (schedule.getCollector() != null) {
+            notificationService.notifyScheduleCompleted(schedule.getCollector().getId(), updatedSchedule.getId());
+        }
+
+        // Notify establishment (use point's establishment)
+        if (schedule.getCollectionPoint().getEstablishment() != null) {
+            notificationService.notifyScheduleCompleted(schedule.getCollectionPoint().getEstablishment().getId(), updatedSchedule.getId());
         }
 
         // Check if point is now almost full and trigger alert
@@ -390,19 +436,45 @@ public class CollectionScheduleService {
                 .orElseThrow(() -> new ResourceNotFoundException("Collection Schedule", "id", id));
 
         if (schedule.getStatus() == CollectionSchedule.ScheduleStatus.COMPLETED) {
-            throw new BusinessException("Cannot cancel completed schedule", "INVALID_STATUS_TRANSITION");
+            throw new BusinessException("Não é possível cancelar agendamento concluído", "INVALID_STATUS_TRANSITION");
         }
 
-        // US03 - Validate cancellation at least 2 hours before scheduled time
-        int hoursBefore = systemConfigService.getCancellationHoursBefore();
-        LocalDateTime scheduledDateTime = schedule.getScheduledDate().atTime(schedule.getStartTime());
-        LocalDateTime minCancellationTime = scheduledDateTime.minusHours(hoursBefore);
+        // US02 - Different cancellation rules for ESTABLISHMENT vs COLLECTOR
+        boolean isEstablishment = cancelledBy.getRole() == User.UserRole.ESTABLISHMENT;
+        boolean isCollector = cancelledBy.getRole() == User.UserRole.COLLECTOR;
+        boolean isAdmin = cancelledBy.getRole() == User.UserRole.ADMIN;
 
-        if (LocalDateTime.now().isAfter(minCancellationTime)) {
-            throw new BusinessException(
-                    "Cannot cancel schedule less than " + hoursBefore + " hours before scheduled time",
-                    "CANCELLATION_TOO_LATE");
+        if (isEstablishment) {
+            // Establishment can only cancel their own point's schedules
+            if (schedule.getCollectionPoint().getEstablishment() == null ||
+                !schedule.getCollectionPoint().getEstablishment().getId().equals(cancelledBy.getId())) {
+                throw new BusinessException("Você só pode cancelar agendamentos nos seus próprios pontos de coleta", "POINT_NOT_OWNED");
+            }
+            // Establishment: 2-hour lock before scheduled time
+            int hoursBefore = systemConfigService.getCancellationHoursBefore();
+            LocalDateTime scheduledDateTime = schedule.getScheduledDate().atTime(schedule.getStartTime());
+            LocalDateTime minCancellationTime = scheduledDateTime.minusHours(hoursBefore);
+
+            // Usar fuso horário America/Sao_Paulo para comparação
+            ZoneId saoPauloZone = ZoneId.of("America/Sao_Paulo");
+            LocalDateTime nowSaoPaulo = LocalDateTime.now(saoPauloZone);
+
+            if (nowSaoPaulo.isAfter(minCancellationTime)) {
+                throw new BusinessException(
+                        "Não é possível cancelar o agendamento com menos de " + hoursBefore + " horas de antecedência.",
+                        "CANCELLATION_TOO_LATE");
+            }
+        } else if (isCollector) {
+            // Collector can only cancel their assigned schedules
+            if (schedule.getCollector() == null || !schedule.getCollector().getId().equals(cancelledBy.getId())) {
+                throw new BusinessException("Você só pode cancelar agendamentos atribuídos a você", "UNAUTHORIZED_ACTION");
+            }
+            // Collector: can cancel at any time, but reason is mandatory (already required by @RequestParam)
+            if (reason == null || reason.trim().isEmpty()) {
+                throw new BusinessException("Motivo do cancelamento é obrigatório para coletores", "REASON_REQUIRED");
+            }
         }
+        // ADMIN has no restrictions (existing behavior)
 
         String oldValues = toJson(schedule);
 
@@ -416,8 +488,15 @@ public class CollectionScheduleService {
         auditLogService.logStatusChange("COLLECTION_SCHEDULE", updatedSchedule.getId(), cancelledBy,
                 oldValues, toJson(updatedSchedule), ipAddress, userAgent);
 
-        // Notify collector
-        notificationService.notifyScheduleCancelled(schedule.getCollector().getId(), updatedSchedule.getId(), reason);
+        // Notify collector only if collector exists
+        if (schedule.getCollector() != null) {
+            notificationService.notifyScheduleCancelled(schedule.getCollector().getId(), updatedSchedule.getId(), reason);
+        }
+
+        // Notify establishment
+        if (schedule.getCollectionPoint().getEstablishment() != null) {
+            notificationService.notifyScheduleCancelled(schedule.getCollectionPoint().getEstablishment().getId(), updatedSchedule.getId(), reason);
+        }
 
         log.info("Schedule cancelled: {} - Reason: {}", updatedSchedule.getId(), reason);
         return CollectionScheduleDTO.fromEntity(updatedSchedule);
@@ -430,7 +509,15 @@ public class CollectionScheduleService {
 
         if (schedule.getStatus() == CollectionSchedule.ScheduleStatus.COMPLETED ||
             schedule.getStatus() == CollectionSchedule.ScheduleStatus.CANCELLED) {
-            throw new BusinessException("Cannot reschedule completed or cancelled schedule", "INVALID_STATUS_TRANSITION");
+            throw new BusinessException("Não é possível reagendar agendamento concluído ou cancelado", "INVALID_STATUS_TRANSITION");
+        }
+
+        // Validar se nova data/hora não é no passado
+        ZoneId saoPauloZone = ZoneId.of("America/Sao_Paulo");
+        LocalDateTime nowSaoPaulo = LocalDateTime.now(saoPauloZone);
+        LocalDateTime newScheduledDateTime = newDate.atTime(newStartTime != null ? newStartTime : schedule.getStartTime());
+        if (newScheduledDateTime.isBefore(nowSaoPaulo)) {
+            throw new BusinessException("Não é possível reagendar para uma data ou horário no passado.", "SCHEDULE_IN_PAST");
         }
 
         // US03 - Validate reschedule at least 2 hours before scheduled time
@@ -438,9 +525,9 @@ public class CollectionScheduleService {
         LocalDateTime scheduledDateTime = schedule.getScheduledDate().atTime(schedule.getStartTime());
         LocalDateTime minChangeTime = scheduledDateTime.minusHours(hoursBefore);
 
-        if (LocalDateTime.now().isAfter(minChangeTime)) {
+        if (nowSaoPaulo.isAfter(minChangeTime)) {
             throw new BusinessException(
-                    "Cannot reschedule less than " + hoursBefore + " hours before scheduled time",
+                    "Não é possível reagendar com menos de " + hoursBefore + " horas de antecedência.",
                     "RESCHEDULE_TOO_LATE");
         }
 
@@ -458,9 +545,11 @@ public class CollectionScheduleService {
         auditLogService.logStatusChange("COLLECTION_SCHEDULE", updatedSchedule.getId(), rescheduledBy,
                 oldValues, toJson(updatedSchedule), ipAddress, userAgent);
 
-        // Notify collector
-        notificationService.notifyScheduleCreated(schedule.getCollector().getId(), updatedSchedule.getId(),
-                schedule.getCollectionPoint().getName());
+        // Notify collector only if collector exists
+        if (schedule.getCollector() != null) {
+            notificationService.notifyScheduleCreated(schedule.getCollector().getId(), updatedSchedule.getId(),
+                    schedule.getCollectionPoint().getName());
+        }
 
         log.info("Schedule rescheduled: {} to {}", updatedSchedule.getId(), newDate);
         return CollectionScheduleDTO.fromEntity(updatedSchedule);
@@ -472,7 +561,7 @@ public class CollectionScheduleService {
                 .orElseThrow(() -> new ResourceNotFoundException("Collection Schedule", "id", id));
 
         if (schedule.getStatus() == CollectionSchedule.ScheduleStatus.COMPLETED) {
-            throw new BusinessException("Cannot delete completed schedule", "SCHEDULE_IMMUTABLE");
+            throw new BusinessException("Não é possível excluir agendamento concluído", "SCHEDULE_IMMUTABLE");
         }
 
         String oldValues = toJson(schedule);
@@ -499,8 +588,8 @@ public class CollectionScheduleService {
                 if (point.getCollector() != null) {
                     notificationService.notifyAlmostFull(point.getCollector().getId(), point.getId(), point.getName());
                 }
-                if (point.getContactEmail() != null) {
-                    notificationService.notifyAlmostFull(point.getId(), point.getId(), point.getName());
+                if (point.getEstablishment() != null) {
+                    notificationService.notifyAlmostFull(point.getEstablishment().getId(), point.getId(), point.getName());
                 }
 
                 log.warn("Almost full alert triggered for point: {} ({}%)", point.getName(), fillPercentage);

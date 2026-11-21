@@ -1,11 +1,15 @@
 package com.oilcollection.security;
 
+import com.oilcollection.controller.CollectionPointController;
 import com.oilcollection.controller.CollectionRecordController;
+import com.oilcollection.controller.CollectionScheduleController;
 import com.oilcollection.controller.CollectorCoverageController;
 import com.oilcollection.controller.ExchangeItemController;
 import com.oilcollection.controller.IncidentController;
 import com.oilcollection.controller.SystemConfigController;
+import com.oilcollection.service.CollectionPointService;
 import com.oilcollection.service.CollectionRecordService;
+import com.oilcollection.service.CollectionScheduleService;
 import com.oilcollection.service.CollectorCoverageService;
 import com.oilcollection.service.ExchangeItemService;
 import com.oilcollection.service.IncidentService;
@@ -30,6 +34,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = {
+        CollectionPointController.class,
+        CollectionScheduleController.class,
         CollectionRecordController.class,
         IncidentController.class,
         ExchangeItemController.class,
@@ -52,6 +58,12 @@ class EndpointAuthorizationTest {
     private UserDetailsService userDetailsService;
 
     @MockBean
+    private CollectionPointService collectionPointService;
+
+    @MockBean
+    private CollectionScheduleService collectionScheduleService;
+
+    @MockBean
     private CollectionRecordService collectionRecordService;
 
     @MockBean
@@ -65,6 +77,84 @@ class EndpointAuthorizationTest {
 
     @MockBean
     private CollectorCoverageService collectorCoverageService;
+
+    @Test
+    @WithMockUser(roles = "ESTABLISHMENT")
+    void establishmentCanCreateCollectionPoint() throws Exception {
+        String body = """
+                {
+                  "name": "Ponto Teste",
+                  "address": "Rua Teste, 123",
+                  "city": "São Paulo",
+                  "state": "SP"
+                }
+                """;
+
+        mockMvc.perform(post("/api/collection-points")
+                        .contentType("application/json")
+                        .content(body))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(roles = "ESTABLISHMENT")
+    void establishmentCanUpdateOwnCollectionPoint() throws Exception {
+        String body = """
+                {
+                  "name": "Ponto Atualizado",
+                  "address": "Rua Teste, 123",
+                  "city": "São Paulo",
+                  "state": "SP"
+                }
+                """;
+
+        mockMvc.perform(put("/api/collection-points/{id}", UUID.randomUUID())
+                        .contentType("application/json")
+                        .content(body))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(roles = "ESTABLISHMENT")
+    void establishmentCanGetMyPoints() throws Exception {
+        mockMvc.perform(get("/api/collection-points/my-points"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(roles = "ESTABLISHMENT")
+    void establishmentCanCreateSchedule() throws Exception {
+        String body = """
+                {
+                  "collectionPointId": "%s",
+                  "scheduledDate": "2025-12-31",
+                  "startTime": "10:00:00",
+                  "estimatedVolumeLiters": 100,
+                  "saleType": "SALE"
+                }
+                """.formatted(UUID.randomUUID());
+
+        mockMvc.perform(post("/api/schedules")
+                        .contentType("application/json")
+                        .content(body))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(roles = "ESTABLISHMENT")
+    void establishmentCanCancelScheduleWithTwoHours() throws Exception {
+        String body = "reason=Emergência";
+        mockMvc.perform(put("/api/schedules/{id}/cancel", UUID.randomUUID())
+                        .param("reason", "Emergência"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(roles = "ESTABLISHMENT")
+    void establishmentCanGetMySchedules() throws Exception {
+        mockMvc.perform(get("/api/schedules/my-schedules"))
+                .andExpect(status().isOk());
+    }
 
     @Test
     @WithMockUser(roles = "ESTABLISHMENT")
@@ -119,6 +209,14 @@ class EndpointAuthorizationTest {
     @WithMockUser(roles = "COLLECTOR")
     void collectorCanGetCollectorCoverage() throws Exception {
         mockMvc.perform(get("/api/collector-coverage/{id}", UUID.randomUUID()))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(roles = "COLLECTOR")
+    void collectorCanCancelScheduleAnytime() throws Exception {
+        mockMvc.perform(put("/api/schedules/{id}/cancel", UUID.randomUUID())
+                        .param("reason", "Imprevisto"))
                 .andExpect(status().isOk());
     }
 }

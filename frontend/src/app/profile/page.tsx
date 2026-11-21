@@ -71,12 +71,38 @@ export default function ProfilePage() {
     }
   };
 
+  // Format phone number for display
+  const formatPhone = (value: string | undefined) => {
+    if (!value) return '';
+    const clean = value.replace(/\D/g, '');
+    return clean
+      .replace(/(\d{2})(\d)/, '($1) $2')
+      .replace(/(\d{5})(\d{1,4})$/, '$1-$2');
+  };
+
+  // Format CPF/CNPJ for display
+  const formatCpfCnpj = (value: string | undefined, isCnpj: boolean) => {
+    if (!value) return '';
+    const clean = value.replace(/\D/g, '');
+    if (isCnpj) {
+      return clean
+        .replace(/([A-Z0-9]{2})([A-Z0-9])/, '$1.$2')
+        .replace(/([A-Z0-9]{3})([A-Z0-9])/, '$1.$2')
+        .replace(/([A-Z0-9]{3})([A-Z0-9])/, '$1/$2')
+        .replace(/([A-Z0-9]{4})([A-Z0-9]{1,2})$/, '$1-$2');
+    }
+    return clean
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+  };
+
   const profileForm = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
       name: user?.name || '',
       email: user?.email || '',
-      phoneNumber: user?.phoneNumber || '',
+      phoneNumber: formatPhone(user?.phoneNumber),
     },
   });
 
@@ -199,6 +225,14 @@ export default function ProfilePage() {
                       {...profileForm.register('phoneNumber')}
                       className="input pl-10"
                       placeholder="(11) 99999-9999"
+                      maxLength={15}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '');
+                        const formatted = value
+                          .replace(/(\d{2})(\d)/, '($1) $2')
+                          .replace(/(\d{5})(\d{1,4})$/, '$1-$2');
+                        profileForm.setValue('phoneNumber', formatted);
+                      }}
                     />
                   </div>
                 </div>
@@ -208,7 +242,7 @@ export default function ProfilePage() {
                   <div className="relative">
                     <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
-                      value={user?.role === 'ESTABLISHMENT' ? user?.cnpj : user?.cpf}
+                      value={formatCpfCnpj(user?.role === 'ESTABLISHMENT' ? user?.cnpj : user?.cpf, user?.role === 'ESTABLISHMENT')}
                       className="input pl-10 bg-gray-50 cursor-not-allowed"
                       disabled
                     />

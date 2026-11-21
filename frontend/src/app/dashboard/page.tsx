@@ -23,8 +23,13 @@ import {
   RefreshCw,
   X,
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+
+// Helper para parsear data YYYY-MM-DD como data local (evita bug de fuso UTC)
+function parseLocalDate(dateString: string): Date {
+  return parse(dateString, 'yyyy-MM-dd', new Date());
+}
 
 interface StatsCardProps {
   title: string;
@@ -160,7 +165,7 @@ function RecentSchedules({ schedules, userRole }: { schedules: CollectionSchedul
                     <tr key={schedule.id}>
                       <td className="font-medium text-gray-900">{schedule.collectionPointName}</td>
                       <td>
-                        {format(new Date(schedule.scheduledDate), 'dd/MM/yyyy', { locale: ptBR })}
+                        {format(parseLocalDate(schedule.scheduledDate), 'dd/MM/yyyy', { locale: ptBR })}
                         {schedule.isToday && (
                           <span className="ml-2 badge-info">Hoje</span>
                         )}

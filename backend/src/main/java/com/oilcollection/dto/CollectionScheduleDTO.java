@@ -21,7 +21,6 @@ public class CollectionScheduleDTO {
 
     private String collectionPointName;
 
-    @NotNull(message = "Collector is required")
     private UUID collectorId;
 
     private String collectorName;

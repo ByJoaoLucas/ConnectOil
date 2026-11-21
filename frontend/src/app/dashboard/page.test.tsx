@@ -22,6 +22,26 @@ jest.mock('@/lib/api', () => ({
 
 jest.mock('@tanstack/react-query', () => ({
   useQuery: ({ queryKey }: { queryKey: string[] }) => {
+    if (queryKey[0] === 'dashboardStats') {
+      return {
+        data: {
+          data: {
+            totalPoints: 2,
+            activePoints: 1,
+            fullPoints: 1,
+            todaySchedules: 1,
+            pendingSchedules: 1,
+            totalVolume: 120,
+            monthVolume: 120,
+            totalRecords: 1,
+            monthRecords: 1,
+            pendingVerification: 0,
+            overdueSchedules: 0,
+          },
+        },
+      };
+    }
+
     if (queryKey[0] === 'collectionPoints') {
       return {
         data: {
@@ -67,6 +87,8 @@ jest.mock('@tanstack/react-query', () => ({
       },
     };
   },
+  useQueryClient: () => ({ invalidateQueries: jest.fn() }),
+  useMutation: () => ({ mutate: jest.fn(), isPending: false }),
 }));
 
 describe('DashboardPage', () => {
@@ -74,7 +96,7 @@ describe('DashboardPage', () => {
     render(<DashboardPage />);
 
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Total de Pontos')).toBeInTheDocument();
+    expect(screen.getByText('Pontos Atribuídos')).toBeInTheDocument();
     expect(screen.getByText('Pontos Ativos')).toBeInTheDocument();
     expect(screen.getByText('Pontos Cheios')).toBeInTheDocument();
     expect(screen.getByText('Agendamentos Hoje')).toBeInTheDocument();
@@ -83,8 +105,8 @@ describe('DashboardPage', () => {
   it('renders recent schedules and collection records', () => {
     render(<DashboardPage />);
 
-    expect(screen.getByText('Próximos Agendamentos')).toBeInTheDocument();
-    expect(screen.getByText('Últimas Coletas')).toBeInTheDocument();
+    expect(screen.getByText('Meus Agendamentos Atribuídos')).toBeInTheDocument();
+    expect(screen.getByText('Minhas Últimas Coletas')).toBeInTheDocument();
     expect(screen.getAllByText('Posto Central').length).toBeGreaterThan(0);
     expect(screen.getByText('Pendente')).toBeInTheDocument();
   });

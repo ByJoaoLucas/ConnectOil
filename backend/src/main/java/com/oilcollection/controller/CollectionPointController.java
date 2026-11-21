@@ -110,9 +110,26 @@ public class CollectionPointController {
         return ResponseEntity.ok(pointService.getUnassignedPoints());
     }
 
+    // US02 - Establishment endpoints
+    @GetMapping("/my-points")
+    @PreAuthorize("hasRole('ESTABLISHMENT')")
+    @Operation(summary = "Get collection points owned by the establishment")
+    public ResponseEntity<Page<CollectionPointDTO>> getMyPoints(
+            @AuthenticationPrincipal User currentUser,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(pointService.getPointsByEstablishment(currentUser.getId(), pageable));
+    }
+
+    @GetMapping("/my-points/list")
+    @PreAuthorize("hasRole('ESTABLISHMENT')")
+    @Operation(summary = "Get collection points owned by the establishment as list")
+    public ResponseEntity<List<CollectionPointDTO>> getMyPointsList(@AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(pointService.getPointsByEstablishment(currentUser.getId()));
+    }
+
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Create new collection point")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ESTABLISHMENT')")
+    @Operation(summary = "Create new collection point (ADMIN can specify owner, ESTABLISHMENT becomes owner automatically)")
     public ResponseEntity<CollectionPointDTO> createPoint(
             @Valid @RequestBody CollectionPointDTO request,
             @AuthenticationPrincipal User currentUser,
@@ -123,8 +140,8 @@ public class CollectionPointController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Update collection point")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ESTABLISHMENT')")
+    @Operation(summary = "Update collection point (ESTABLISHMENT can only update own points)")
     public ResponseEntity<CollectionPointDTO> updatePoint(
             @PathVariable UUID id,
             @Valid @RequestBody CollectionPointDTO request,
@@ -137,7 +154,7 @@ public class CollectionPointController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Delete collection point")
+    @Operation(summary = "Delete collection point (only ADMIN)")
     public ResponseEntity<Void> deletePoint(
             @PathVariable UUID id,
             @AuthenticationPrincipal User currentUser,
@@ -149,8 +166,8 @@ public class CollectionPointController {
     }
 
     @PutMapping("/{pointId}/collector/{collectorId}")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Assign collector to collection point")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ESTABLISHMENT')")
+    @Operation(summary = "Assign collector to collection point (ESTABLISHMENT can only assign to own points)")
     public ResponseEntity<CollectionPointDTO> assignCollector(
             @PathVariable UUID pointId,
             @PathVariable UUID collectorId,
@@ -162,8 +179,8 @@ public class CollectionPointController {
     }
 
     @DeleteMapping("/{pointId}/collector")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Unassign collector from collection point")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ESTABLISHMENT')")
+    @Operation(summary = "Unassign collector from collection point (ESTABLISHMENT can only unassign from own points)")
     public ResponseEntity<CollectionPointDTO> unassignCollector(
             @PathVariable UUID pointId,
             @AuthenticationPrincipal User currentUser,
@@ -174,8 +191,8 @@ public class CollectionPointController {
     }
 
     @PutMapping("/{pointId}/volume")
-    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
-    @Operation(summary = "Update collection point volume")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR', 'ESTABLISHMENT')")
+    @Operation(summary = "Update collection point volume (ESTABLISHMENT can only update own points)")
     public ResponseEntity<CollectionPointDTO> updateVolume(
             @PathVariable UUID pointId,
             @RequestParam Integer volumeLiters,
@@ -187,8 +204,8 @@ public class CollectionPointController {
     }
 
     @PutMapping("/{pointId}/volume/add")
-    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
-    @Operation(summary = "Add volume to collection point")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR', 'ESTABLISHMENT')")
+    @Operation(summary = "Add volume to collection point (ESTABLISHMENT can only add to own points)")
     public ResponseEntity<CollectionPointDTO> addVolume(
             @PathVariable UUID pointId,
             @RequestParam Integer additionalLiters,
@@ -200,8 +217,8 @@ public class CollectionPointController {
     }
 
     @PutMapping("/{pointId}/volume/remove")
-    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
-    @Operation(summary = "Remove volume from collection point")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR', 'ESTABLISHMENT')")
+    @Operation(summary = "Remove volume from collection point (ESTABLISHMENT can only remove from own points)")
     public ResponseEntity<CollectionPointDTO> removeVolume(
             @PathVariable UUID pointId,
             @RequestParam Integer removedLiters,

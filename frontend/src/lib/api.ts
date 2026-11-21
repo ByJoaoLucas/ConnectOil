@@ -137,6 +137,11 @@ export const collectionPointsApi = {
     api.get(`/collection-points/city/${city}/state/${state}`),
   getUnassigned: () =>
     api.get('/collection-points/unassigned'),
+  // US02 - Establishment endpoints
+  getMyPoints: (params?: { page?: number; size?: number }) =>
+    api.get('/collection-points/my-points', { params }),
+  getMyPointsList: () =>
+    api.get('/collection-points/my-points/list'),
   create: (data: any) =>
     api.post('/collection-points', data),
   update: (id: string, data: any) =>
@@ -176,6 +181,11 @@ export const schedulesApi = {
     api.get('/schedules/overdue'),
   getByCollectorAndDateRange: (collectorId: string, start: string, end: string) =>
     api.get(`/schedules/collector/${collectorId}/range`, { params: { start, end } }),
+  // US02 - Establishment endpoints
+  getMySchedules: (params?: { page?: number; size?: number }) =>
+    api.get('/schedules/my-schedules', { params }),
+  getMySchedulesList: () =>
+    api.get('/schedules/my-schedules/list'),
   create: (data: any) =>
     api.post('/schedules', data),
   update: (id: string, data: any) =>
