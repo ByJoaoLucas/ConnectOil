@@ -25,6 +25,7 @@ const navigation = [
   { name: 'Pontos de Coleta', href: '/collection-points', icon: MapPin, roles: ['ADMIN', 'COLLECTOR', 'CLIENT', 'ESTABLISHMENT'] },
   { name: 'Agendamentos', href: '/schedules', icon: Calendar, roles: ['ADMIN', 'COLLECTOR', 'ESTABLISHMENT'] },
   { name: 'Registros', href: '/records', icon: Package, roles: ['ADMIN', 'COLLECTOR', 'ESTABLISHMENT'] },
+  { name: 'Meu Perfil', href: '/profile', icon: User, roles: ['ADMIN', 'COLLECTOR', 'CLIENT', 'ESTABLISHMENT'] },
   { name: 'Relatórios', href: '/reports', icon: BarChart3, roles: ['ADMIN'] },
   { name: 'Usuários', href: '/users', icon: Users, roles: ['ADMIN'] },
 ];
@@ -103,10 +104,18 @@ export function Layout({ children }: LayoutProps) {
                 <User className="w-5 h-5 text-primary-600" />
               </div>
               {sidebarOpen && (
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>
-                  <p className="text-xs text-gray-500 truncate">{user?.role ? USER_ROLE_LABELS[user.role as keyof typeof USER_ROLE_LABELS] : ''}</p>
-                </div>
+                <Link
+                  href="/profile"
+                  className="flex-1 min-w-0 flex items-center space-x-2 px-2 py-1.5 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer group"
+                  onClick={() => setMobileSidebarOpen(false)}
+                  title="Meu Perfil"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate group-hover:text-primary-600 transition-colors">{user?.name}</p>
+                    <p className="text-xs text-gray-500 truncate">{user?.role ? USER_ROLE_LABELS[user.role as keyof typeof USER_ROLE_LABELS] : ''}</p>
+                  </div>
+                  <User className="w-4 h-4 text-gray-400 group-hover:text-primary-600 transition-colors opacity-0 group-hover:opacity-100 ml-auto" aria-hidden="true" />
+                </Link>
               )}
               <button
                 onClick={handleLogout}

@@ -89,6 +89,8 @@ export const authApi = {
     api.put('/auth/password', null, { params: { currentPassword, newPassword } }),
   updateProfile: (data: any) =>
     api.put('/users/me', data),
+  deleteAccount: () =>
+    api.delete('/auth/account'),
 };
 
 export const usersApi = {

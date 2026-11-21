@@ -16,6 +16,9 @@ import {
   Save,
   AlertCircle,
   CheckCircle,
+  Trash2,
+  X,
+  AlertTriangle,
 } from 'lucide-react';
 import { USER_ROLE_LABELS } from '@/types';
 import { useForm } from 'react-hook-form';
@@ -50,11 +53,23 @@ const passwordSchema = z.object({
 });
 
 export default function ProfilePage() {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, deleteAccount, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<'profile' | 'password'>('profile');
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmation !== 'EXCLUIR') return;
+    try {
+      await deleteAccount();
+      // logout is called inside deleteAccount, which clears tokens and redirects
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Erro ao excluir conta');
+    }
+  };
 
   const profileForm = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -189,16 +204,18 @@ export default function ProfilePage() {
                 </div>
 
                 <div>
-                  <label className="label">CPF</label>
+                  <label className="label">{user?.role === 'ESTABLISHMENT' ? 'CNPJ' : 'CPF'}</label>
                   <div className="relative">
                     <Shield className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
-                      value={user?.cpf}
+                      value={user?.role === 'ESTABLISHMENT' ? user?.cnpj : user?.cpf}
                       className="input pl-10 bg-gray-50 cursor-not-allowed"
                       disabled
                     />
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">O CPF não pode ser alterado</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {user?.role === 'ESTABLISHMENT' ? 'O CNPJ não pode ser alterado' : 'O CPF não pode ser alterado'}
+                  </p>
                 </div>
 
                 <div className="md:col-span-2">
@@ -212,6 +229,7 @@ export default function ProfilePage() {
                     >
                       <option value="ADMIN">Administrador</option>
                       <option value="COLLECTOR">Coletor</option>
+                      <option value="ESTABLISHMENT">Estabelecimento</option>
                       <option value="CLIENT">Cliente</option>
                     </select>
                   </div>
@@ -333,6 +351,100 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
+
+      {/* Zona de Perigo - Apenas para COLLECTOR e ESTABLISHMENT */}
+      {(user?.role === 'COLLECTOR' || user?.role === 'ESTABLISHMENT') && (
+        <div className="card border-red-200">
+          <div className="card-header border-b border-red-200">
+            <div className="flex items-center space-x-3">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+              <h3 className="text-lg font-semibold text-red-800">Zona de Perigo</h3>
+            </div>
+            <p className="text-sm text-red-600 mt-1">
+              Ações irreversíveis. Tenha certeza antes de prosseguir.
+            </p>
+          </div>
+          <div className="card-body">
+            <div className="flex items-center justify-between p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div>
+                <p className="font-medium text-red-900">Excluir minha conta</p>
+                <p className="text-sm text-red-700 mt-1">
+                  Esta ação desativará sua conta permanentemente. Seu e-mail e CPF/CNPJ permanecerão
+                  ocupados no sistema e não poderão ser usados para novo cadastro. Seus dados de
+                  coletas e agendamentos serão mantidos para histórico, mas você não poderá mais
+                  acessar a plataforma.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsDeleteModalOpen(true)}
+                className="btn-danger flex-shrink-0"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Excluir conta
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de confirmação de exclusão */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setIsDeleteModalOpen(false)}>
+          <div className="w-full max-w-md bg-white rounded-xl shadow-xl p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Confirmar exclusão da conta</h3>
+            </div>
+            <p className="text-gray-600 mb-6">
+              Esta ação é <strong>irreversível</strong>. Sua conta será desativada permanentemente e você
+              não poderá mais acessar a plataforma Connect Oil.
+            </p>
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-800 font-medium mb-2">
+                Para confirmar, digite exatamente: <code className="bg-red-100 px-1.5 py-0.5 rounded text-sm">EXCLUIR</code>
+              </p>
+              <input
+                type="text"
+                value={deleteConfirmation}
+                onChange={(e) => setDeleteConfirmation(e.target.value.toUpperCase())}
+                onKeyDown={(e) => e.stopPropagation()}
+                className="input font-mono text-lg tracking-widest text-center"
+                placeholder="DIGITE EXCLUIR"
+                maxLength={7}
+                autoFocus
+              />
+              <p className="text-xs text-red-600 mt-2 text-center">
+                O botão será habilitado apenas quando o texto for exatamente EXCLUIR
+              </p>
+            </div>
+            <div className="flex space-x-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsDeleteModalOpen(false);
+                  setDeleteConfirmation('');
+                }}
+                className="btn-secondary flex-1"
+              >
+                <X className="w-4 h-4 mr-2" />
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={deleteConfirmation !== 'EXCLUIR'}
+                className="btn-danger flex-1"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Excluir definitivamente
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
