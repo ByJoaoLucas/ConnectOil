@@ -93,6 +93,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/exchange-items/**").hasRole("ADMIN")
                         .requestMatchers("/api/incidents/**").hasAnyRole("ADMIN", "COLLECTOR", "ESTABLISHMENT")
                         .requestMatchers("/api/notifications/**").hasAnyRole("ADMIN", "COLLECTOR", "ESTABLISHMENT")
+                        .requestMatchers("/api/dashboard/**").hasAnyRole("ADMIN", "COLLECTOR", "ESTABLISHMENT")
                         .requestMatchers(HttpMethod.GET, "/api/system-config/price/base-oil").hasAnyRole("ADMIN", "COLLECTOR")
                         .requestMatchers("/api/system-config/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/collector-coverage/**").hasAnyRole("ADMIN", "COLLECTOR")

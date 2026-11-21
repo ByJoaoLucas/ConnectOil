@@ -3,8 +3,6 @@ package com.oilcollection.model;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -39,13 +37,11 @@ public class AuditLog {
     @JoinColumn(name = "changed_by")
     private User changedBy;
 
-    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "old_values", columnDefinition = "JSONB")
-    private Object oldValues;
+    private String oldValues;
 
-    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "new_values", columnDefinition = "JSONB")
-    private Object newValues;
+    private String newValues;
 
     @Column(name = "ip_address", length = 45)
     private String ipAddress;

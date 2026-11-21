@@ -146,6 +146,18 @@ public class CollectionScheduleController {
         return ResponseEntity.ok(scheduleService.assignSchedule(id, collectorId, currentUser, ipAddress, userAgent));
     }
 
+    @PutMapping("/{id}/confirm")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
+    @Operation(summary = "Confirm/accept schedule (collector accepts pending schedule)")
+    public ResponseEntity<CollectionScheduleDTO> confirmSchedule(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal User currentUser,
+            HttpServletRequest httpRequest) {
+        String ipAddress = getClientIp(httpRequest);
+        String userAgent = httpRequest.getHeader("User-Agent");
+        return ResponseEntity.ok(scheduleService.confirmSchedule(id, currentUser, ipAddress, userAgent));
+    }
+
     @PutMapping("/{id}/start")
     @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR')")
     @Operation(summary = "Start schedule (collector en route)")

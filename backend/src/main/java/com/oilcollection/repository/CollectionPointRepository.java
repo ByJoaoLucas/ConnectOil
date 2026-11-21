@@ -53,4 +53,11 @@ public interface CollectionPointRepository extends JpaRepository<CollectionPoint
 
     @Query("SELECT cp FROM CollectionPoint cp WHERE cp.collector IS NULL AND cp.status = :status")
     List<CollectionPoint> findUnassignedPoints(@Param("status") CollectionPoint.PointStatus status);
+
+    // Dashboard queries
+    List<CollectionPoint> findByContactEmail(String email);
+
+    List<CollectionPoint> findByCollectorId(UUID collectorId);
+
+    List<CollectionPoint> findByIdIn(List<UUID> ids);
 }

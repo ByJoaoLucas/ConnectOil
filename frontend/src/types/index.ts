@@ -169,6 +169,39 @@ export interface PaginatedResponse<T> {
   empty: boolean;
 }
 
+export interface DashboardStatsDTO {
+  // Collection Points
+  totalPoints: number;
+  activePoints: number;
+  fullPoints: number;
+  pendingApprovalPoints: number;
+
+  // Schedules
+  totalSchedules: number;
+  pendingSchedules: number;
+  confirmedSchedules: number;
+  todaySchedules: number;
+  overdueSchedules: number;
+  inProgressSchedules: number;
+  completedSchedules: number;
+
+  // Records
+  totalRecords: number;
+  pendingVerification: number;
+  monthRecords: number;
+  totalVolume: number;
+  monthVolume: number;
+
+  // Users
+  totalCollectors: number;
+  activeCollectors: number;
+  totalEstablishments: number;
+  activeEstablishments: number;
+
+  // Collector specific
+  avgQuality: number;
+}
+
 export interface DailyVolumeDTO {
   date: string;
   totalVolume: number;

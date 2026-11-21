@@ -256,6 +256,43 @@ public class CollectionScheduleService {
     }
 
     @Transactional
+    public CollectionScheduleDTO confirmSchedule(UUID id, User confirmedBy, String ipAddress, String userAgent) {
+        CollectionSchedule schedule = scheduleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Collection Schedule", "id", id));
+
+        // Collector can only confirm their own pending schedules
+        if (!schedule.getCollector().getId().equals(confirmedBy.getId())) {
+            throw new BusinessException("You can only confirm schedules assigned to you", "UNAUTHORIZED_ACTION");
+        }
+
+        if (schedule.getStatus() != CollectionSchedule.ScheduleStatus.PENDING) {
+            throw new BusinessException("Only pending schedules can be confirmed", "INVALID_STATUS_TRANSITION");
+        }
+
+        String oldValues = toJson(schedule);
+
+        schedule.setStatus(CollectionSchedule.ScheduleStatus.ASSIGNED);
+        schedule.setAssignedAt(LocalDateTime.now());
+
+        CollectionSchedule updatedSchedule = scheduleRepository.save(schedule);
+
+        // Log audit
+        auditLogService.logStatusChange("COLLECTION_SCHEDULE", updatedSchedule.getId(), confirmedBy,
+                oldValues, toJson(updatedSchedule), ipAddress, userAgent);
+
+        // Notify establishment (find user by contact email)
+        if (schedule.getCollectionPoint().getContactEmail() != null) {
+            userRepository.findByEmail(schedule.getCollectionPoint().getContactEmail())
+                    .ifPresent(establishmentUser ->
+                        notificationService.notifyScheduleAssigned(establishmentUser.getId(), updatedSchedule.getId(), confirmedBy.getName())
+                    );
+        }
+
+        log.info("Schedule confirmed by collector {}: {}", confirmedBy.getName(), updatedSchedule.getId());
+        return CollectionScheduleDTO.fromEntity(updatedSchedule);
+    }
+
+    @Transactional
     public CollectionScheduleDTO startSchedule(UUID id, User startedBy, String ipAddress, String userAgent) {
         CollectionSchedule schedule = scheduleRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection Schedule", "id", id));
@@ -276,11 +313,12 @@ public class CollectionScheduleService {
         auditLogService.logStatusChange("COLLECTION_SCHEDULE", updatedSchedule.getId(), startedBy,
                 oldValues, toJson(updatedSchedule), ipAddress, userAgent);
 
-        // Notify establishment (collection point contact)
+        // Notify establishment (find user by contact email)
         if (schedule.getCollectionPoint().getContactEmail() != null) {
-            notificationService.notifyScheduleEnRoute(schedule.getCollectionPoint().getContactEmail() != null ?
-                    schedule.getCollectionPoint().getId() : schedule.getCollector().getId(),
-                    updatedSchedule.getId());
+            userRepository.findByEmail(schedule.getCollectionPoint().getContactEmail())
+                    .ifPresent(establishmentUser ->
+                        notificationService.notifyScheduleEnRoute(establishmentUser.getId(), updatedSchedule.getId())
+                    );
         }
 
         log.info("Schedule started (en route): {}", updatedSchedule.getId());
@@ -333,7 +371,10 @@ public class CollectionScheduleService {
         // Notify establishment and collector
         notificationService.notifyScheduleCompleted(schedule.getCollector().getId(), updatedSchedule.getId());
         if (schedule.getCollectionPoint().getContactEmail() != null) {
-            notificationService.notifyScheduleCompleted(schedule.getCollectionPoint().getId(), updatedSchedule.getId());
+            userRepository.findByEmail(schedule.getCollectionPoint().getContactEmail())
+                    .ifPresent(establishmentUser ->
+                        notificationService.notifyScheduleCompleted(establishmentUser.getId(), updatedSchedule.getId())
+                    );
         }
 
         // Check if point is now almost full and trigger alert

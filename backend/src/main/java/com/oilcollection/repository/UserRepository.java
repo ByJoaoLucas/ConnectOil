@@ -38,4 +38,9 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     List<User> findInactiveUsersSince(@Param("date") java.time.LocalDateTime date);
 
     List<User> findByCollectionPointsIsNotNull();
+
+    // Dashboard queries
+    long countByRole(User.UserRole role);
+
+    long countByRoleAndIsActive(User.UserRole role, boolean isActive);
 }

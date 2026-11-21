@@ -93,4 +93,19 @@ public interface CollectionRecordRepository extends JpaRepository<CollectionReco
     @Query("SELECT NEW com.oilcollection.dto.OilTypeVolumeDTO(r.oilType, SUM(r.volumeCollectedLiters)) " +
            "FROM CollectionRecord r WHERE r.collectionDate BETWEEN :start AND :end AND r.oilType IS NOT NULL GROUP BY r.oilType")
     List<OilTypeVolumeDTO> getOilTypeVolumeReport(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    // Dashboard queries
+    List<CollectionRecord> findByCollectionPointIn(List<CollectionPoint> points);
+
+    List<CollectionRecord> findByCollectorId(UUID collectorId);
+
+    long countByVerifiedByManagerFalse();
+
+    @Query("SELECT SUM(r.volumeCollectedLiters) FROM CollectionRecord r")
+    BigDecimal getTotalVolumeAllTime();
+
+    @Query("SELECT SUM(r.volumeCollectedLiters) FROM CollectionRecord r WHERE r.collectionDate BETWEEN :start AND :end")
+    BigDecimal getTotalVolumeByPeriod(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    long countByCollectionDateAfter(LocalDateTime start);
 }

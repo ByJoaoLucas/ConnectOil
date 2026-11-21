@@ -76,10 +76,10 @@ public class CollectionPoint {
     @Column(name = "contact_email", length = 100)
     private String contactEmail;
 
-    @Column(name = "operating_hours", columnDefinition = "JSONB")
+    @Column(name = "operating_hours", columnDefinition = "TEXT")
     private String operatingHours;
 
-    @Column(name = "accepted_oil_types", columnDefinition = "JSONB")
+    @Column(name = "accepted_oil_types", columnDefinition = "TEXT")
     private String acceptedOilTypes;
 
     @Column(name = "alert_almost_full", nullable = false)

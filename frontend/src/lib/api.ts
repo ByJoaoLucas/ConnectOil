@@ -182,6 +182,8 @@ export const schedulesApi = {
     api.put(`/schedules/${id}/confirm`),
   start: (id: string) =>
     api.put(`/schedules/${id}/start`),
+  arrive: (id: string) =>
+    api.put(`/schedules/${id}/arrive`),
   complete: (id: string) =>
     api.put(`/schedules/${id}/complete`),
   cancel: (id: string, reason: string) =>
@@ -337,6 +339,11 @@ export const systemConfigApi = {
     api.post('/system-config', { configKey, configValue }),
   delete: (id: string) =>
     api.delete(`/system-config/${id}`),
+};
+
+export const dashboardApi = {
+  getStats: () =>
+    api.get('/dashboard/stats'),
 };
 
 export default api;
