@@ -403,6 +403,9 @@ public class CollectionScheduleService {
         auditLogService.logStatusChange("COLLECTION_SCHEDULE", updatedSchedule.getId(), acceptedBy,
                 oldValues, toJson(updatedSchedule), ipAddress, userAgent);
 
+        // Notify collector who accepted the schedule
+        notificationService.notifyScheduleAssigned(acceptedBy.getId(), updatedSchedule.getId(), acceptedBy.getName());
+
         // Notify establishment (use point's establishment)
         if (schedule.getCollectionPoint().getEstablishment() != null) {
             notificationService.notifyScheduleAssigned(schedule.getCollectionPoint().getEstablishment().getId(),

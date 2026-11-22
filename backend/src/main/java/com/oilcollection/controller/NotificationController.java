@@ -62,4 +62,12 @@ public class NotificationController {
         notificationService.markAllAsRead(currentUser.getId());
         return ResponseEntity.noContent().build();
     }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR', 'ESTABLISHMENT')")
+    @Operation(summary = "Delete a notification (only if read)")
+    public ResponseEntity<Void> deleteNotification(@PathVariable UUID id, @AuthenticationPrincipal User currentUser) {
+        notificationService.deleteNotification(id, currentUser.getId());
+        return ResponseEntity.noContent().build();
+    }
 }

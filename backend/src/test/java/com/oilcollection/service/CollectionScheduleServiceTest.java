@@ -403,6 +403,50 @@ class CollectionScheduleServiceTest {
     }
 
     @Test
+    void completeSchedule_WithCollector_NotifiesBothCollectorAndEstablishment() {
+        CollectionSchedule schedule = createScheduleEntity();
+        schedule.setCollector(collectorUser);
+        schedule.setStatus(CollectionSchedule.ScheduleStatus.IN_PROGRESS);
+        schedule.setCollectionPoint(establishmentPoint);
+
+        when(scheduleRepository.findById(schedule.getId())).thenReturn(Optional.of(schedule));
+        when(scheduleRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        doNothing().when(auditLogService).logStatusChange(anyString(), any(), any(), anyString(), anyString(), anyString(), anyString());
+
+        CollectionScheduleDTO result = scheduleService.completeSchedule(schedule.getId(), collectorUser, "127.0.0.1", "test-agent");
+
+        assertNotNull(result);
+        assertEquals(CollectionSchedule.ScheduleStatus.COMPLETED, result.getStatus());
+
+        // Verify notification to collector
+        verify(notificationService).notifyScheduleCompleted(collectorUser.getId(), schedule.getId());
+        // Verify notification to establishment
+        verify(notificationService).notifyScheduleCompleted(establishmentUser.getId(), schedule.getId());
+    }
+
+    @Test
+    void completeSchedule_WithNullCollector_NotifiesOnlyEstablishment() {
+        CollectionSchedule schedule = createScheduleEntity();
+        schedule.setCollector(null); // No collector assigned
+        schedule.setStatus(CollectionSchedule.ScheduleStatus.IN_PROGRESS);
+        schedule.setCollectionPoint(establishmentPoint);
+
+        when(scheduleRepository.findById(schedule.getId())).thenReturn(Optional.of(schedule));
+        when(scheduleRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        doNothing().when(auditLogService).logStatusChange(anyString(), any(), any(), anyString(), anyString(), anyString(), anyString());
+
+        CollectionScheduleDTO result = scheduleService.completeSchedule(schedule.getId(), collectorUser, "127.0.0.1", "test-agent");
+
+        assertNotNull(result);
+        assertEquals(CollectionSchedule.ScheduleStatus.COMPLETED, result.getStatus());
+
+        // Verify notification to establishment only
+        verify(notificationService).notifyScheduleCompleted(establishmentUser.getId(), schedule.getId());
+        // Verify notifyScheduleCompleted was called exactly once (only establishment)
+        verify(notificationService, times(1)).notifyScheduleCompleted(any(), any());
+    }
+
+    @Test
     void startSchedule_WithNullCollector_NoNPE() {
         CollectionSchedule schedule = createScheduleEntity();
         schedule.setCollector(null);

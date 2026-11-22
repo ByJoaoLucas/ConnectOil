@@ -322,6 +322,8 @@ export const notificationsApi = {
     api.put(`/notifications/${id}/read`),
   markAllAsRead: () =>
     api.put('/notifications/read-all'),
+  deleteNotification: (id: string) =>
+    api.delete(`/notifications/${id}`),
 };
 
 export const collectorCoverageApi = {

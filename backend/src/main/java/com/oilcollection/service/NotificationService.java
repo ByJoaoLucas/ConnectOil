@@ -1,6 +1,7 @@
 package com.oilcollection.service;
 
 import com.oilcollection.dto.NotificationDTO;
+import com.oilcollection.exception.BusinessException;
 import com.oilcollection.exception.ResourceNotFoundException;
 import com.oilcollection.model.Notification;
 import com.oilcollection.model.User;
@@ -82,6 +83,22 @@ public class NotificationService {
     @Transactional
     public void markAllAsRead(UUID userId) {
         notificationRepository.markAllAsReadByUserId(userId);
+    }
+
+    @Transactional
+    public void deleteNotification(UUID notificationId, UUID userId) {
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Notificação", "id", notificationId));
+
+        if (!notification.getUser().getId().equals(userId)) {
+            throw new BusinessException("Notificação não pertence ao usuário");
+        }
+
+        if (!notification.getIsRead()) {
+            throw new BusinessException("Apenas notificações lidas podem ser excluídas");
+        }
+
+        notificationRepository.delete(notification);
     }
 
     // Convenience methods for common notifications

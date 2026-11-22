@@ -227,3 +227,37 @@ fix(schedules): corrigir bugs da validação manual Etapa 3
 
 ## 8. Problemas extras encontrados e não corrigidos
 - Nenhum problema extra relevante encontrado durante a implementação da Etapa 3.
+
+---
+
+## 9. Melhorias pós-US3 (entregues após validação da Etapa 3)
+
+As seguintes melhorias foram implementadas após a conclusão dos critérios de aceite do US3, a pedido do usuário:
+
+### 9.1 Exclusão de Notificações Lidas
+- **Backend**: Adicionado endpoint `DELETE /api/notifications/{id}` em `NotificationController.java`
+- **Service**: `NotificationService.deleteNotification()` valida que a notificação pertence ao usuário e que já foi lida (`isRead = true`), lançando `BusinessException` (HTTP 400) caso contrário
+- **Frontend**: Ícone de lixeira (`Trash2` do lucide-react) exibido apenas para notificações já marcadas como lidas no dropdown do header
+- **API**: `notificationsApi.deleteNotification(id)` em `lib/api.ts`
+
+### 9.2 Perfil de Teste Dedicado (`application-test.yml`)
+- Criado `backend/src/main/resources/application-test.yml` com configurações corretas para testes:
+  - Credenciais de banco alinhadas com `.env` (connectoil/admin123/admin123)
+  - JWT secret válido em base64 (sem underscores inválidos)
+  - Flyway desabilitado para testes unitários rápidos
+  - Hibernate `ddl-auto: create-drop` para schema limpo a cada execução
+- Permite rodar `mvn test` sem depender de Docker Compose subido
+
+### 9.3 Correções de Integração Frontend-Backend
+- **Layout.tsx**: Corrigido parsing de notificações - Spring Boot retorna `Page` direto em `response.data` (não `response.data.data`), ajustado para `data.content || data`
+- **Contador não lidas**: Endpoint correto `/count/unread` (era `/unread-count`)
+- **CORS**: Validado para `localhost:3000` funcionando corretamente
+
+### 9.4 Validação Completa do Fluxo E2E
+Testado e confirmado funcionando:
+1. Estabelecimento cria agendamento → recebe `SCHEDULE_CREATED`
+2. Coletor aceita agendamento (`PUT /accept`) → estabelecimento recebe `SCHEDULE_ASSIGNED`, coletor recebe `SCHEDULE_ASSIGNED`
+3. Coletor inicia deslocamento (`PUT /start`) → estabelecimento recebe `SCHEDULE_EN_ROUTE`
+4. Coletor conclui coleta (`PUT /complete`) → estabelecimento recebe `SCHEDULE_COMPLETED` ✅
+5. Notificações aparecem no sininho do header com badge de contador
+6. Notificações lidas mostram ícone de lixeira para exclusão

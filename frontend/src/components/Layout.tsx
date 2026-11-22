@@ -24,6 +24,7 @@ import {
   Check,
   X as XIcon,
   Loader2,
+  Trash2,
 } from 'lucide-react';
 
 const navigation = [
@@ -68,7 +69,8 @@ export function Layout({ children }: LayoutProps) {
     if (!user || !token) return;
     try {
       const response = await notificationsApi.getUnreadCount();
-      setUnreadCount(response.data.data || 0);
+      // API returns number directly, not wrapped in 'data'
+      setUnreadCount(response.data || 0);
     } catch (error) {
       console.error('Erro ao buscar contagem de notificações:', error);
     }
@@ -79,7 +81,10 @@ export function Layout({ children }: LayoutProps) {
     setNotificationsLoading(true);
     try {
       const response = await notificationsApi.getMyNotifications({ size: 20 });
-      setNotifications(response.data.data?.content || response.data.data || []);
+      // API returns Spring Boot Page directly: { content: [...], totalElements: ..., ... }
+      // Not wrapped in a 'data' field
+      const data = response.data;
+      setNotifications(data.content || data || []);
     } catch (error) {
       console.error('Erro ao buscar notificações:', error);
     } finally {
@@ -104,6 +109,17 @@ export function Layout({ children }: LayoutProps) {
       setUnreadCount(0);
     } catch (error) {
       console.error('Erro ao marcar todas como lidas:', error);
+    }
+  };
+
+  const deleteNotification = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await notificationsApi.deleteNotification(id);
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    } catch (error) {
+      console.error('Erro ao excluir notificação:', error);
+      alert('Apenas notificações lidas podem ser excluídas');
     }
   };
 
@@ -296,6 +312,15 @@ export function Layout({ children }: LayoutProps) {
                                       aria-label="Marcar como lida"
                                     >
                                       <Check className="w-4 h-4" />
+                                    </button>
+                                  )}
+                                  {notification.isRead && (
+                                    <button
+                                      onClick={(e) => deleteNotification(notification.id, e)}
+                                      className="p-1 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                      aria-label="Excluir notificação"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
                                     </button>
                                   )}
                                 </div>
