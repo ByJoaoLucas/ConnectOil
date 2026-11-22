@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { dashboardApi, schedulesApi, recordsApi } from '@/lib/api';
-import { DashboardStatsDTO, CollectionSchedule, CollectionRecord } from '@/types';
+import { DashboardStatsDTO, CollectionSchedule, CollectionRecord, SCHEDULE_STATUS_LABELS, SCHEDULE_STATUS_COLORS, ScheduleStatus } from '@/types';
 import {
   MapPin,
   Calendar,
@@ -62,17 +62,24 @@ function StatsCard({ title, value, icon, color, bgColor, trend }: StatsCardProps
 function RecentSchedules({ schedules, userRole }: { schedules: CollectionSchedule[]; userRole: string }) {
   const queryClient = useQueryClient();
 
-  const getStatusConfig = (status: string) => {
-    switch (status) {
-      case 'PENDING': return { label: 'Pendente', className: 'badge-info', action: 'Aceitar' };
-      case 'ASSIGNED': return { label: 'Atribuído', className: 'badge-blue', action: 'Iniciar' };
-      case 'EN_ROUTE': return { label: 'A Caminho', className: 'badge-orange', action: 'Chegar' };
-      case 'IN_PROGRESS': return { label: 'Em Andamento', className: 'badge-warning', action: 'Concluir' };
-      case 'COMPLETED': return { label: 'Concluído', className: 'badge-success', action: null };
-      case 'CANCELLED': return { label: 'Cancelado', className: 'badge-danger', action: null };
-      case 'RESCHEDULED': return { label: 'Reagendado', className: 'badge-purple', action: null };
-      default: return { label: status, className: 'badge-gray', action: null };
-    }
+  const getStatusConfig = (status: ScheduleStatus) => {
+    // Use centralized labels from types
+    const label = SCHEDULE_STATUS_LABELS[status];
+    const colorClass = SCHEDULE_STATUS_COLORS[status].replace('bg-', 'badge-').replace(' text-', '-');
+
+    // Map status to action for collector
+    const actionMap: Record<ScheduleStatus, string | null> = {
+      PENDING: 'Aceitar',
+      CONFIRMED: 'Iniciar',
+      ASSIGNED: 'Iniciar',
+      EN_ROUTE: 'Chegar',
+      IN_PROGRESS: 'Concluir',
+      COMPLETED: null,
+      CANCELLED: null,
+      RESCHEDULED: null,
+    };
+
+    return { label, className: `badge ${colorClass}`, action: actionMap[status] };
   };
 
   const getActionIcon = (action: string | null) => {

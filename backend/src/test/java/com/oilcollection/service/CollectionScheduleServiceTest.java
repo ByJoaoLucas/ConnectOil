@@ -22,6 +22,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -254,10 +255,17 @@ class CollectionScheduleServiceTest {
         schedule.setCollectionPoint(establishmentPoint);
 
         // Use America/Sao_Paulo timezone for test data to match business logic
+        // Schedule for 1 hour from now (rounded up to next hour) to ensure < 2h gap
+        // Handle midnight crossover by using tomorrow's date if needed
         ZoneId saoPauloZone = ZoneId.of("America/Sao_Paulo");
         LocalDateTime nowSaoPaulo = LocalDateTime.now(saoPauloZone);
-        schedule.setScheduledDate(nowSaoPaulo.toLocalDate());
-        schedule.setStartTime(nowSaoPaulo.plusHours(1).toLocalTime()); // 1 hour from now in Sao Paulo time
+
+        // Target: 1 hour from now, rounded up to next hour boundary
+        // e.g., now=10:30 -> target=11:00 (30 min), now=10:00 -> target=11:00 (1h), now=23:30 -> target=00:00 next day (30 min)
+        LocalDateTime target = nowSaoPaulo.plusHours(1).withMinute(0).withSecond(0).withNano(0);
+
+        schedule.setScheduledDate(target.toLocalDate());
+        schedule.setStartTime(target.toLocalTime());
 
         when(scheduleRepository.findById(schedule.getId())).thenReturn(Optional.of(schedule));
 
@@ -443,6 +451,135 @@ class CollectionScheduleServiceTest {
                 () -> scheduleService.confirmSchedule(schedule.getId(), collectorUser, "127.0.0.1", "test-agent"));
 
         assertEquals("UNAUTHORIZED_ACTION", exception.getErrorCode());
+    }
+
+    // ===== TESTS FOR US03 - ESTABLISHMENT SCHEDULE FILTERING =====
+
+    @Test
+    void getSchedulesByEstablishmentAndDate_ReturnsOnlyOwnSchedules() {
+        LocalDate date = LocalDate.now().plusDays(1);
+        CollectionSchedule schedule1 = createScheduleEntity();
+        schedule1.setId(UUID.randomUUID());
+        schedule1.setScheduledDate(date);
+
+        CollectionSchedule schedule2 = createScheduleEntity();
+        schedule2.setId(UUID.randomUUID());
+        schedule2.setCollectionPoint(otherEstablishmentPoint);
+        schedule2.setScheduledDate(date);
+
+        when(userRepository.findById(establishmentUser.getId())).thenReturn(Optional.of(establishmentUser));
+        when(scheduleRepository.findByCollectionPoint_EstablishmentAndScheduledDate(establishmentUser, date))
+                .thenReturn(List.of(schedule1));
+
+        List<CollectionScheduleDTO> result = scheduleService.getSchedulesByEstablishmentAndDate(establishmentUser.getId(), date);
+
+        assertEquals(1, result.size());
+        assertEquals(schedule1.getId(), result.get(0).getId());
+        verify(scheduleRepository).findByCollectionPoint_EstablishmentAndScheduledDate(establishmentUser, date);
+    }
+
+    @Test
+    void getSchedulesByEstablishmentAndDate_EmptyWhenNoSchedules() {
+        LocalDate date = LocalDate.now().plusDays(1);
+        when(userRepository.findById(establishmentUser.getId())).thenReturn(Optional.of(establishmentUser));
+        when(scheduleRepository.findByCollectionPoint_EstablishmentAndScheduledDate(establishmentUser, date))
+                .thenReturn(List.of());
+
+        List<CollectionScheduleDTO> result = scheduleService.getSchedulesByEstablishmentAndDate(establishmentUser.getId(), date);
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void getSchedulesByEstablishmentAndDate_InvalidRole_ThrowsException() {
+        when(userRepository.findById(collectorUser.getId())).thenReturn(Optional.of(collectorUser));
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> scheduleService.getSchedulesByEstablishmentAndDate(collectorUser.getId(), LocalDate.now()));
+
+        assertEquals("INVALID_ESTABLISHMENT_ROLE", exception.getErrorCode());
+    }
+
+    // ===== TESTS FOR NOTIFICATIONS ON CANCELLATION =====
+
+    @Test
+    void cancelSchedule_Establishment_NotifiesBothEstablishmentAndCollector() {
+        CollectionSchedule schedule = createScheduleEntity();
+        schedule.setCollectionPoint(establishmentPoint);
+        schedule.setCollector(collectorUser);
+        schedule.setScheduledDate(LocalDate.now().plusDays(1));
+        schedule.setStartTime(LocalTime.of(10, 0));
+
+        when(scheduleRepository.findById(schedule.getId())).thenReturn(Optional.of(schedule));
+        when(scheduleRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        doNothing().when(auditLogService).logStatusChange(anyString(), any(), any(), anyString(), anyString(), anyString(), anyString());
+
+        scheduleService.cancelSchedule(schedule.getId(), "Emergência", establishmentUser, "127.0.0.1", "test-agent");
+
+        // Verify notification to collector
+        verify(notificationService).notifyScheduleCancelled(collectorUser.getId(), schedule.getId(), "Emergência");
+        // Verify notification to establishment
+        verify(notificationService).notifyScheduleCancelled(establishmentUser.getId(), schedule.getId(), "Emergência");
+    }
+
+    @Test
+    void cancelSchedule_Establishment_WithoutCollector_NotifiesOnlyEstablishment() {
+        CollectionSchedule schedule = createScheduleEntity();
+        schedule.setCollectionPoint(establishmentPoint);
+        schedule.setCollector(null); // No collector assigned
+        schedule.setScheduledDate(LocalDate.now().plusDays(1));
+        schedule.setStartTime(LocalTime.of(10, 0));
+
+        when(scheduleRepository.findById(schedule.getId())).thenReturn(Optional.of(schedule));
+        when(scheduleRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        doNothing().when(auditLogService).logStatusChange(anyString(), any(), any(), anyString(), anyString(), anyString(), anyString());
+
+        scheduleService.cancelSchedule(schedule.getId(), "Emergência", establishmentUser, "127.0.0.1", "test-agent");
+
+        // Verify notification to establishment (only notification since collector is null)
+        verify(notificationService).notifyScheduleCancelled(establishmentUser.getId(), schedule.getId(), "Emergência");
+        // Verify notifyScheduleCancelled was called exactly once (only establishment)
+        verify(notificationService, times(1)).notifyScheduleCancelled(any(), any(), anyString());
+    }
+
+    @Test
+    void cancelSchedule_Collector_NotifiesBothCollectorAndEstablishment() {
+        CollectionSchedule schedule = createScheduleEntity();
+        schedule.setCollectionPoint(establishmentPoint);
+        schedule.setCollector(collectorUser);
+        schedule.setScheduledDate(LocalDate.now()); // Today - collector can cancel anytime
+
+        when(scheduleRepository.findById(schedule.getId())).thenReturn(Optional.of(schedule));
+        when(scheduleRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        doNothing().when(auditLogService).logStatusChange(anyString(), any(), any(), anyString(), anyString(), anyString(), anyString());
+
+        scheduleService.cancelSchedule(schedule.getId(), "Imprevisto", collectorUser, "127.0.0.1", "test-agent");
+
+        // Verify notification to collector
+        verify(notificationService).notifyScheduleCancelled(collectorUser.getId(), schedule.getId(), "Imprevisto");
+        // Verify notification to establishment
+        verify(notificationService).notifyScheduleCancelled(establishmentUser.getId(), schedule.getId(), "Imprevisto");
+    }
+
+    // ===== TEST FOR ASSIGN SCHEDULE NOTIFIES ESTABLISHMENT =====
+
+    @Test
+    void assignSchedule_NotifiesEstablishment() {
+        CollectionSchedule schedule = createScheduleEntity();
+        schedule.setCollector(null);
+        schedule.setStatus(CollectionSchedule.ScheduleStatus.PENDING);
+
+        when(scheduleRepository.findById(schedule.getId())).thenReturn(Optional.of(schedule));
+        when(userRepository.findById(collectorUser.getId())).thenReturn(Optional.of(collectorUser));
+        when(scheduleRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        doNothing().when(auditLogService).logStatusChange(anyString(), any(), any(), anyString(), anyString(), anyString(), anyString());
+
+        scheduleService.assignSchedule(schedule.getId(), collectorUser.getId(), adminUser, "127.0.0.1", "test-agent");
+
+        // Verify notification to collector
+        verify(notificationService).notifyScheduleAssigned(collectorUser.getId(), schedule.getId(), collectorUser.getName());
+        // Verify notification to establishment
+        verify(notificationService).notifyScheduleAssigned(establishmentUser.getId(), schedule.getId(), collectorUser.getName());
     }
 
     // ===== HELPER METHODS =====

@@ -43,7 +43,7 @@ public class CollectionScheduleService {
 
     @Transactional(readOnly = true)
     public List<CollectionScheduleDTO> getAllSchedules() {
-        return scheduleRepository.findAll().stream().map(CollectionScheduleDTO::fromEntity).toList();
+        return scheduleRepository.findAllByOrderByCreatedAtDesc().stream().map(CollectionScheduleDTO::fromEntity).toList();
     }
 
     @Transactional(readOnly = true)
@@ -107,6 +107,15 @@ public class CollectionScheduleService {
                 .stream().map(CollectionScheduleDTO::fromEntity).toList();
     }
 
+    // US03 - Get schedules for collector (assigned + available PENDING without collector)
+    @Transactional(readOnly = true)
+    public List<CollectionScheduleDTO> getSchedulesForCollector(UUID collectorId) {
+        User collector = userRepository.findById(collectorId)
+                .orElseThrow(() -> new ResourceNotFoundException("Collector", "id", collectorId));
+        return scheduleRepository.findByCollectorOrAvailable(collector, CollectionSchedule.ScheduleStatus.PENDING)
+                .stream().map(CollectionScheduleDTO::fromEntity).toList();
+    }
+
     // US02 - Get schedules for establishment (only their points)
     @Transactional(readOnly = true)
     public Page<CollectionScheduleDTO> getSchedulesByEstablishment(UUID establishmentId, Pageable pageable) {
@@ -127,6 +136,18 @@ public class CollectionScheduleService {
             throw new BusinessException("Usuário deve ter o papel de ESTABELECIMENTO", "INVALID_ESTABLISHMENT_ROLE");
         }
         return scheduleRepository.findByCollectionPoint_Establishment(establishment)
+                .stream().map(CollectionScheduleDTO::fromEntity).toList();
+    }
+
+    // US03 - Get schedules for establishment by date
+    @Transactional(readOnly = true)
+    public List<CollectionScheduleDTO> getSchedulesByEstablishmentAndDate(UUID establishmentId, LocalDate date) {
+        User establishment = userRepository.findById(establishmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Establishment", "id", establishmentId));
+        if (establishment.getRole() != User.UserRole.ESTABLISHMENT) {
+            throw new BusinessException("Usuário deve ter o papel de ESTABELECIMENTO", "INVALID_ESTABLISHMENT_ROLE");
+        }
+        return scheduleRepository.findByCollectionPoint_EstablishmentAndScheduledDate(establishment, date)
                 .stream().map(CollectionScheduleDTO::fromEntity).toList();
     }
 
@@ -208,9 +229,14 @@ public class CollectionScheduleService {
         auditLogService.logCreate("COLLECTION_SCHEDULE", savedSchedule.getId(), createdBy,
                 toJson(savedSchedule), ipAddress, userAgent);
 
-        // Notify collector only if collector exists
+        // Notify collector if collector exists
         if (collector != null) {
             notificationService.notifyScheduleCreated(collector.getId(), savedSchedule.getId(), point.getName());
+        }
+
+        // Notify establishment (the creator) about their new schedule
+        if (isEstablishment && point.getEstablishment() != null) {
+            notificationService.notifyScheduleCreated(point.getEstablishment().getId(), savedSchedule.getId(), point.getName());
         }
 
         log.info("Schedule created for point {} on {} by {}", point.getName(), request.getScheduledDate(), createdBy.getEmail());
@@ -301,6 +327,12 @@ public class CollectionScheduleService {
         // Notify collector
         notificationService.notifyScheduleAssigned(collector.getId(), updatedSchedule.getId(), collector.getName());
 
+        // Notify establishment (use point's establishment)
+        if (schedule.getCollectionPoint().getEstablishment() != null) {
+            notificationService.notifyScheduleAssigned(schedule.getCollectionPoint().getEstablishment().getId(),
+                    updatedSchedule.getId(), collector.getName());
+        }
+
         log.info("Schedule assigned to collector {}: {}", collector.getName(), updatedSchedule.getId());
         return CollectionScheduleDTO.fromEntity(updatedSchedule);
     }
@@ -337,6 +369,47 @@ public class CollectionScheduleService {
         }
 
         log.info("Schedule confirmed by collector {}: {}", confirmedBy.getName(), updatedSchedule.getId());
+        return CollectionScheduleDTO.fromEntity(updatedSchedule);
+    }
+
+    @Transactional
+    public CollectionScheduleDTO acceptSchedule(UUID id, User acceptedBy, String ipAddress, String userAgent) {
+        CollectionSchedule schedule = scheduleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Collection Schedule", "id", id));
+
+        // Only COLLECTOR role can accept
+        if (acceptedBy.getRole() != User.UserRole.COLLECTOR) {
+            throw new BusinessException("Apenas coletores podem aceitar coletas", "UNAUTHORIZED_ACTION");
+        }
+
+        // Schedule must be PENDING and have no collector assigned
+        if (schedule.getStatus() != CollectionSchedule.ScheduleStatus.PENDING) {
+            throw new BusinessException("Apenas agendamentos pendentes podem ser aceitos", "INVALID_STATUS_TRANSITION");
+        }
+        if (schedule.getCollector() != null) {
+            throw new BusinessException("Esta coleta já foi aceita por outro coletor", "SCHEDULE_ALREADY_ASSIGNED");
+        }
+
+        String oldValues = toJson(schedule);
+
+        // Assign to the current collector and set status to ASSIGNED
+        schedule.setCollector(acceptedBy);
+        schedule.setStatus(CollectionSchedule.ScheduleStatus.ASSIGNED);
+        schedule.setAssignedAt(LocalDateTime.now());
+
+        CollectionSchedule updatedSchedule = scheduleRepository.save(schedule);
+
+        // Log audit
+        auditLogService.logStatusChange("COLLECTION_SCHEDULE", updatedSchedule.getId(), acceptedBy,
+                oldValues, toJson(updatedSchedule), ipAddress, userAgent);
+
+        // Notify establishment (use point's establishment)
+        if (schedule.getCollectionPoint().getEstablishment() != null) {
+            notificationService.notifyScheduleAssigned(schedule.getCollectionPoint().getEstablishment().getId(),
+                    updatedSchedule.getId(), acceptedBy.getName());
+        }
+
+        log.info("Schedule accepted by collector {}: {}", acceptedBy.getName(), updatedSchedule.getId());
         return CollectionScheduleDTO.fromEntity(updatedSchedule);
     }
 

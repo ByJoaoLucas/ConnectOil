@@ -16,6 +16,7 @@ import {
   MapPin,
   AlertCircle,
   CheckCircle,
+  CheckCircle2,
   XCircle,
   Edit,
   Trash2,
@@ -100,6 +101,8 @@ const scheduleSchema = z.object({
 export default function SchedulesPage() {
   const { user } = useAuth();
   const isEstablishment = user?.role === 'ESTABLISHMENT';
+  const isCollector = user?.role === 'COLLECTOR';
+  const isAdmin = user?.role === 'ADMIN';
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<ScheduleStatus | 'ALL'>('ALL');
   const [dateFilter, setDateFilter] = useState('');
@@ -109,12 +112,21 @@ export default function SchedulesPage() {
   const [cancelReason, setCancelReason] = useState('');
   const queryClient = useQueryClient();
 
-  const schedulesQueryKey = isEstablishment ? ['schedules', 'my'] : ['schedules'];
+  // Query keys based on role
+  const schedulesQueryKey = isEstablishment
+    ? ['schedules', 'my']
+    : isCollector
+    ? ['schedules', 'collector']
+    : ['schedules'];
   const pointsQueryKey = isEstablishment ? ['collectionPoints', 'my'] : ['collectionPoints'];
 
   const { data: schedulesData, isLoading: schedulesLoading } = useQuery({
     queryKey: schedulesQueryKey,
-    queryFn: () => isEstablishment ? schedulesApi.getMySchedulesList() : schedulesApi.getAllList(),
+    queryFn: () => {
+      if (isEstablishment) return schedulesApi.getEstablishmentSchedulesList();
+      if (isCollector) return schedulesApi.getMySchedules();
+      return schedulesApi.getAllList();
+    },
   });
 
   const { data: pointsData } = useQuery({
@@ -190,6 +202,17 @@ export default function SchedulesPage() {
     },
   });
 
+  const acceptMutation = useMutation({
+    mutationFn: (id: string) => schedulesApi.accept(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: schedulesQueryKey });
+      toast.success('Coleta aceita com sucesso!');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Erro ao aceitar coleta');
+    },
+  });
+
   const startMutation = useMutation({
     mutationFn: (id: string) => schedulesApi.start(id),
     onSuccess: () => {
@@ -249,6 +272,12 @@ export default function SchedulesPage() {
   const handleConfirm = (id: string) => {
     if (confirm('Confirmar este agendamento?')) {
       confirmMutation.mutate(id);
+    }
+  };
+
+  const handleAccept = (id: string) => {
+    if (confirm('Aceitar esta coleta? Você será atribuído como coletor responsável.')) {
+      acceptMutation.mutate(id);
     }
   };
 
@@ -322,12 +351,11 @@ export default function SchedulesPage() {
                 className="input pl-10 pr-10 appearance-none"
               >
                 <option value="ALL">Todos os status</option>
-                <option value="PENDING">Pendente</option>
-                <option value="CONFIRMED">Confirmado</option>
-                <option value="IN_PROGRESS">Em Andamento</option>
-                <option value="COMPLETED">Concluído</option>
-                <option value="CANCELLED">Cancelado</option>
-                <option value="RESCHEDULED">Reagendado</option>
+                {Object.entries(SCHEDULE_STATUS_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
               </select>
             </div>
             <div className="relative">
@@ -430,44 +458,54 @@ export default function SchedulesPage() {
                             >
                               <Calendar className="w-5 h-5" />
                             </Link>
-                            {/* Botão Editar oculto para ESTABLISHMENT - apenas ADMIN/COLLECTOR podem editar */}
-                            {!isEstablishment && (
-                              <button
-                                onClick={() => handleEdit(schedule)}
-                                className="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-                                title="Editar"
-                                disabled={['COMPLETED', 'CANCELLED'].includes(schedule.status)}
-                              >
-                                <Edit className="w-5 h-5" />
-                              </button>
-                            )}
-                            {schedule.status === 'PENDING' && !isEstablishment && (
-                              <button
-                                onClick={() => handleConfirm(schedule.id)}
-                                className="p-2 rounded-lg text-blue-500 hover:text-blue-700 hover:bg-blue-50"
-                                title="Confirmar"
-                              >
-                                <CheckCircle className="w-5 h-5" />
-                              </button>
-                            )}
-                            {schedule.status === 'CONFIRMED' && (
-                              <button
-                                onClick={() => handleStart(schedule.id)}
-                                className="p-2 rounded-lg text-yellow-500 hover:text-yellow-700 hover:bg-yellow-50"
-                                title="Iniciar"
-                              >
-                                <Truck className="w-5 h-5" />
-                              </button>
-                            )}
-                            {(schedule.status === 'CONFIRMED' || schedule.status === 'IN_PROGRESS') && (
-                              <button
-                                onClick={() => handleComplete(schedule.id)}
-                                className="p-2 rounded-lg text-green-500 hover:text-green-700 hover:bg-green-50"
-                                title="Concluir"
-                              >
-                                <CheckCircle className="w-5 h-5" />
-                              </button>
-                            )}
+                            {/* Botão "Aceitar Coleta" para COLLECTOR em agendamentos PENDING sem coletor */}
+                            {isCollector &&
+                              schedule.status === 'PENDING' &&
+                              !schedule.collectorId &&
+                              (
+                                <button
+                                  onClick={() => handleAccept(schedule.id)}
+                                  className="p-2 rounded-lg text-green-600 hover:text-green-800 hover:bg-green-50"
+                                  title="Aceitar Coleta"
+                                >
+                                  <CheckCircle2 className="w-5 h-5" />
+                                </button>
+                              )}
+                            {/* Botão Confirmar: apenas ADMIN ou COLLECTOR dono do agendamento */}
+                            {schedule.status === 'PENDING' &&
+                              schedule.collectorId &&
+                              (isAdmin || (isCollector && schedule.collectorId === user?.id)) && (
+                                <button
+                                  onClick={() => handleConfirm(schedule.id)}
+                                  className="p-2 rounded-lg text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                                  title="Confirmar"
+                                >
+                                  <CheckCircle className="w-5 h-5" />
+                                </button>
+                              )}
+                            {/* Botão Iniciar Deslocamento: ADMIN ou COLLECTOR dono - para status CONFIRMED ou ASSIGNED (Atribuída) */}
+                            {(schedule.status === 'CONFIRMED' || schedule.status === 'ASSIGNED') &&
+                              (isAdmin || (isCollector && schedule.collectorId === user?.id)) && (
+                                <button
+                                  onClick={() => handleStart(schedule.id)}
+                                  className="p-2 rounded-lg text-yellow-500 hover:text-yellow-700 hover:bg-yellow-50"
+                                  title="Iniciar Deslocamento (A caminho)"
+                                >
+                                  <Truck className="w-5 h-5" />
+                                </button>
+                              )}
+                            {/* Botão Concluir Coleta: ADMIN ou COLLECTOR dono - para status IN_PROGRESS (A caminho) */}
+                            {schedule.status === 'IN_PROGRESS' &&
+                              (isAdmin || (isCollector && schedule.collectorId === user?.id)) && (
+                                <button
+                                  onClick={() => handleComplete(schedule.id)}
+                                  className="p-2 rounded-lg text-green-500 hover:text-green-700 hover:bg-green-50"
+                                  title="Concluir Coleta"
+                                >
+                                  <CheckCircle className="w-5 h-5" />
+                                </button>
+                              )}
+                            {/* Botão Cancelar: todos podem cancelar conforme regras de negócio */}
                             {['PENDING', 'CONFIRMED', 'IN_PROGRESS'].includes(schedule.status) && (
                               <button
                                 onClick={() => handleCancel(schedule.id)}
@@ -477,7 +515,19 @@ export default function SchedulesPage() {
                                 <XCircle className="w-5 h-5" />
                               </button>
                             )}
-                            {!isEstablishment && (
+                            {/* Botão Editar: apenas ADMIN */}
+                            {isAdmin && (
+                              <button
+                                onClick={() => handleEdit(schedule)}
+                                className="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                                title="Editar"
+                                disabled={['COMPLETED', 'CANCELLED'].includes(schedule.status)}
+                              >
+                                <Edit className="w-5 h-5" />
+                              </button>
+                            )}
+                            {/* Botão Excluir: apenas ADMIN */}
+                            {isAdmin && (
                               <button
                                 onClick={() => handleDelete(schedule.id)}
                                 className="p-2 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50"
@@ -524,6 +574,8 @@ export default function SchedulesPage() {
               }}
               isLoading={createMutation.isPending || updateMutation.isPending}
               isEstablishment={isEstablishment}
+              isAdmin={isAdmin}
+              isEditing={!!editingSchedule}
             />
           </div>
         </div>
@@ -608,6 +660,8 @@ function ScheduleForm({
   onClose,
   isLoading,
   isEstablishment,
+  isAdmin,
+  isEditing,
 }: {
   initialData: CollectionSchedule | null;
   points: CollectionPoint[];
@@ -616,6 +670,8 @@ function ScheduleForm({
   onClose: () => void;
   isLoading: boolean;
   isEstablishment: boolean;
+  isAdmin: boolean;
+  isEditing: boolean;
 }) {
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<ScheduleFormData>({
     resolver: zodResolver(scheduleSchema),
@@ -635,9 +691,10 @@ function ScheduleForm({
   if (initialData) {
     setValue('collectionPointId', initialData.collectionPointId);
     setValue('collectorId', initialData.collectorId || '');
-    setValue('scheduledDate', initialData.scheduledDate);
-    setValue('startTime', initialData.startTime);
-    setValue('endTime', initialData.endTime || '');
+    setValue('scheduledDate', String(initialData.scheduledDate).slice(0, 10));
+    // Backend returns HH:mm:ss, slice to HH:mm for time input
+    setValue('startTime', initialData.startTime ? initialData.startTime.slice(0, 5) : '');
+    setValue('endTime', initialData.endTime ? initialData.endTime.slice(0, 5) : '');
     setValue('notes', initialData.notes || '');
     setValue('estimatedVolumeLiters', initialData.estimatedVolumeLiters);
     setValue('saleType', initialData.saleType || 'SALE');
@@ -666,7 +723,7 @@ function ScheduleForm({
           {errors.collectionPointId && <p className="error-message">{errors.collectionPointId.message}</p>}
         </div>
 
-        {!isEstablishment && (
+        {isAdmin && (
           <div>
             <label htmlFor="collectorId" className="label">Coletor *</label>
             <select id="collectorId" {...register('collectorId')} className={`input ${errors.collectorId ? 'input-error' : ''}`}>
@@ -688,7 +745,7 @@ function ScheduleForm({
             type="date"
             {...register('scheduledDate')}
             className={`input ${errors.scheduledDate ? 'input-error' : ''}`}
-            min={getLocalDateString()}
+            min={isEditing || isAdmin ? undefined : getLocalDateString()}
           />
           {errors.scheduledDate && <p className="error-message">{errors.scheduledDate.message}</p>}
         </div>

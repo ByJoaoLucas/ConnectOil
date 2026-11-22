@@ -162,12 +162,12 @@ describe('SchedulesPage', () => {
       expect(screen.getAllByText('Novo Agendamento').length).toBeGreaterThan(0);
     });
 
-    it('shows collector field in form', () => {
+    it('hides collector field for COLLECTOR role (only ADMIN can choose collector)', () => {
       render(<SchedulesPage />);
 
       fireEvent.click(screen.getAllByText('Novo Agendamento')[0]);
 
-      expect(screen.getByLabelText('Coletor *')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Coletor *')).not.toBeInTheDocument();
     });
 
     it('does not show saleType field for non-establishment', () => {

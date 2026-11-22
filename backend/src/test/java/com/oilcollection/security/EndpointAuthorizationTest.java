@@ -7,6 +7,7 @@ import com.oilcollection.controller.CollectorCoverageController;
 import com.oilcollection.controller.ExchangeItemController;
 import com.oilcollection.controller.IncidentController;
 import com.oilcollection.controller.SystemConfigController;
+import com.oilcollection.repository.CollectionPointRepository;
 import com.oilcollection.service.CollectionPointService;
 import com.oilcollection.service.CollectionRecordService;
 import com.oilcollection.service.CollectionScheduleService;
@@ -56,6 +57,9 @@ class EndpointAuthorizationTest {
 
     @MockBean
     private UserDetailsService userDetailsService;
+
+    @MockBean
+    private CollectionPointRepository collectionPointRepository;
 
     @MockBean
     private CollectionPointService collectionPointService;
@@ -186,6 +190,42 @@ class EndpointAuthorizationTest {
         mockMvc.perform(post("/api/incidents")
                         .contentType("application/json")
                         .content(body))
+                .andExpect(status().isOk());
+    }
+
+    // US03 - Establishment can access schedule GET endpoints (filtered by ownership)
+    @Test
+    @WithMockUser(roles = "ESTABLISHMENT")
+    void establishmentCanGetAllSchedules() throws Exception {
+        mockMvc.perform(get("/api/schedules"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(roles = "ESTABLISHMENT")
+    void establishmentCanGetAllSchedulesList() throws Exception {
+        mockMvc.perform(get("/api/schedules/list"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(roles = "ESTABLISHMENT")
+    void establishmentCanGetScheduleById() throws Exception {
+        mockMvc.perform(get("/api/schedules/{id}", UUID.randomUUID()))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(roles = "ESTABLISHMENT")
+    void establishmentCanGetSchedulesByPoint() throws Exception {
+        mockMvc.perform(get("/api/schedules/point/{pointId}", UUID.randomUUID()))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(roles = "ESTABLISHMENT")
+    void establishmentCanGetSchedulesByDate() throws Exception {
+        mockMvc.perform(get("/api/schedules/date/{date}", "2025-12-31"))
                 .andExpect(status().isOk());
     }
 

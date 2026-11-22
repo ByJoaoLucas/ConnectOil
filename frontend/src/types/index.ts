@@ -242,14 +242,14 @@ export const STATUS_LABELS: Record<PointStatus, string> = {
 };
 
 export const SCHEDULE_STATUS_LABELS: Record<ScheduleStatus, string> = {
-  PENDING: 'Pendente',
-  CONFIRMED: 'Confirmado',
-  ASSIGNED: 'Atribuído',
-  EN_ROUTE: 'A Caminho',
-  IN_PROGRESS: 'Em Andamento',
-  COMPLETED: 'Concluído',
-  CANCELLED: 'Cancelado',
-  RESCHEDULED: 'Reagendado',
+  PENDING: 'Agendada',
+  CONFIRMED: 'Atribuída',
+  ASSIGNED: 'Atribuída',
+  EN_ROUTE: 'A caminho',
+  IN_PROGRESS: 'Em andamento',
+  COMPLETED: 'Concluída',
+  CANCELLED: 'Cancelada',
+  RESCHEDULED: 'Reagendada',
 };
 
 export const USER_ROLE_LABELS: Record<UserRole, string> = {

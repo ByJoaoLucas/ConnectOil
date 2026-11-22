@@ -114,12 +114,12 @@ Etapa 3 — US3: Acompanhamento de Status e Notificações Confiáveis
 
 Critérios de aceite (US3): exibir os status agendada, atribuída, a caminho, concluída e cancelada; notificar o estabelecimento a cada mudança de status.
 
-[ ] Back-end: liberar os GET de agendamentos (/api/schedules, /list, /{id}, /date/{date}, /point/{pointId}) para ESTABLISHMENT, sempre filtrando no service pelos pontos cujo dono é o usuário logado.
-[ ] Notificações: trocar a busca do estabelecimento por e-mail de contato (findByEmail(point.getContactEmail())) pelo dono real (point.getEstablishment()) em confirmação, atribuição, a caminho e conclusão, e adicionar a notificação no cancelamento (estabelecimento e, se houver, coletor). Nunca assumir coletor não nulo.
-[ ] Front-end: em schedules/page.tsx e schedules/[id]/page.tsx, badges de status em português (tabela de referência acima), motivo do cancelamento e linha do tempo na tela de detalhe. Tratar 403/404 com mensagem clara.
-[ ] Testes: CollectionScheduleServiceTest (A não vê agendamento de B; vê os próprios; notificação dispara no cancelamento), EndpointAuthorizationTest e testes de front-end dos schedules.
-[ ] Teste manual: estabelecimento A agenda; estabelecimento B não vê o agendamento de A; mudar status como admin/coletor e conferir as notificações do A.
-[ ] Relatório: gravar RELATORIOS/RELATORIO_ETAPA3_US3_ACOMPANHAMENTO_STATUS.md no formato da seção "Relatório obrigatório" e mostrar o resumo na resposta.
+[x] Back-end: liberar os GET de agendamentos (/api/schedules, /list, /{id}, /date/{date}, /point/{pointId}) para ESTABLISHMENT, sempre filtrando no service pelos pontos cujo dono é o usuário logado.
+[x] Notificações: trocar a busca do estabelecimento por e-mail de contato (findByEmail(point.getContactEmail())) pelo dono real (point.getEstablishment()) em confirmação, atribuição, a caminho e conclusão, e adicionar a notificação no cancelamento (estabelecimento e, se houver, coletor). Nunca assumir coletor não nulo.
+[x] Front-end: em schedules/page.tsx e schedules/[id]/page.tsx, badges de status em português (tabela de referência acima), motivo do cancelamento e linha do tempo na tela de detalhe. Tratar 403/404 com mensagem clara.
+[x] Testes: CollectionScheduleServiceTest (A não vê agendamento de B; vê os próprios; notificação dispara no cancelamento), EndpointAuthorizationTest e testes de front-end dos schedules.
+[x] Teste manual: estabelecimento A agenda; estabelecimento B não vê o agendamento de A; mudar status como admin/coletor e conferir as notificações do A.
+[x] Relatório: gravar RELATORIOS/RELATORIO_ETAPA3_US3_ACOMPANHAMENTO_STATUS.md no formato da seção "Relatório obrigatório" e mostrar o resumo na resposta.
 Etapa 4 — US4: Coletas Disponíveis e Aceite Atômico
 
 Critérios de aceite (US4): listar endereço, horário, volume estimado e nome do estabelecimento; filtrar por data e região; o coletor aceita a coleta e ela some da lista dos demais.

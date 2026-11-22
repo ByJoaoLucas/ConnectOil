@@ -1,8 +1,11 @@
 package com.oilcollection.controller;
 
 import com.oilcollection.dto.CollectionScheduleDTO;
+import com.oilcollection.exception.ResourceNotFoundException;
+import com.oilcollection.model.CollectionPoint;
 import com.oilcollection.model.CollectionSchedule;
 import com.oilcollection.model.User;
+import com.oilcollection.repository.CollectionPointRepository;
 import com.oilcollection.service.CollectionScheduleService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -29,27 +32,43 @@ import java.util.UUID;
 public class CollectionScheduleController {
 
     private final CollectionScheduleService scheduleService;
+    private final CollectionPointRepository pointRepository;
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR', 'ESTABLISHMENT')")
-    @Operation(summary = "Get all schedules with pagination")
+    @Operation(summary = "Get all schedules with pagination (ESTABLISHMENT sees only their points)")
     public ResponseEntity<Page<CollectionScheduleDTO>> getAllSchedules(
-            @PageableDefault(size = 20) Pageable pageable) {
+            @PageableDefault(size = 20) Pageable pageable,
+            @AuthenticationPrincipal User currentUser) {
+        if (currentUser.getRole() == User.UserRole.ESTABLISHMENT) {
+            return ResponseEntity.ok(scheduleService.getSchedulesByEstablishment(currentUser.getId(), pageable));
+        }
         return ResponseEntity.ok(scheduleService.getAllSchedules(pageable));
     }
 
     @GetMapping("/list")
     @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR', 'ESTABLISHMENT')")
-    @Operation(summary = "Get all schedules as list")
-    public ResponseEntity<List<CollectionScheduleDTO>> getAllSchedulesList() {
+    @Operation(summary = "Get all schedules as list (ESTABLISHMENT sees only their points)")
+    public ResponseEntity<List<CollectionScheduleDTO>> getAllSchedulesList(@AuthenticationPrincipal User currentUser) {
+        if (currentUser.getRole() == User.UserRole.ESTABLISHMENT) {
+            return ResponseEntity.ok(scheduleService.getSchedulesByEstablishment(currentUser.getId()));
+        }
         return ResponseEntity.ok(scheduleService.getAllSchedules());
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR', 'ESTABLISHMENT')")
-    @Operation(summary = "Get schedule by ID")
-    public ResponseEntity<CollectionScheduleDTO> getScheduleById(@PathVariable UUID id) {
-        return ResponseEntity.ok(scheduleService.getScheduleById(id));
+    @Operation(summary = "Get schedule by ID (ESTABLISHMENT only their points)")
+    public ResponseEntity<CollectionScheduleDTO> getScheduleById(@PathVariable UUID id, @AuthenticationPrincipal User currentUser) {
+        CollectionScheduleDTO schedule = scheduleService.getScheduleById(id);
+        // For ESTABLISHMENT, verify ownership of the schedule's point
+        if (currentUser.getRole() == User.UserRole.ESTABLISHMENT) {
+            if (schedule.getCollectionPointEstablishmentId() == null ||
+                !schedule.getCollectionPointEstablishmentId().equals(currentUser.getId())) {
+                throw new ResourceNotFoundException("Collection Schedule", "id", id);
+            }
+        }
+        return ResponseEntity.ok(schedule);
     }
 
     @GetMapping("/collector/{collectorId}")
@@ -72,15 +91,30 @@ public class CollectionScheduleController {
 
     @GetMapping("/point/{pointId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR', 'ESTABLISHMENT')")
-    @Operation(summary = "Get schedules by collection point")
-    public ResponseEntity<List<CollectionScheduleDTO>> getSchedulesByPoint(@PathVariable UUID pointId) {
+    @Operation(summary = "Get schedules by collection point (ESTABLISHMENT only their points)")
+    public ResponseEntity<List<CollectionScheduleDTO>> getSchedulesByPoint(
+            @PathVariable UUID pointId,
+            @AuthenticationPrincipal User currentUser) {
+        if (currentUser.getRole() == User.UserRole.ESTABLISHMENT) {
+            // Verify the point belongs to this establishment
+            CollectionPoint point = pointRepository.findById(pointId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Collection Point", "id", pointId));
+            if (point.getEstablishment() == null || !point.getEstablishment().getId().equals(currentUser.getId())) {
+                throw new ResourceNotFoundException("Collection Point", "id", pointId);
+            }
+        }
         return ResponseEntity.ok(scheduleService.getSchedulesByPoint(pointId));
     }
 
     @GetMapping("/date/{date}")
     @PreAuthorize("hasAnyRole('ADMIN', 'COLLECTOR', 'ESTABLISHMENT')")
-    @Operation(summary = "Get schedules by date")
-    public ResponseEntity<List<CollectionScheduleDTO>> getSchedulesByDate(@PathVariable LocalDate date) {
+    @Operation(summary = "Get schedules by date (ESTABLISHMENT only their points)")
+    public ResponseEntity<List<CollectionScheduleDTO>> getSchedulesByDate(
+            @PathVariable LocalDate date,
+            @AuthenticationPrincipal User currentUser) {
+        if (currentUser.getRole() == User.UserRole.ESTABLISHMENT) {
+            return ResponseEntity.ok(scheduleService.getSchedulesByEstablishmentAndDate(currentUser.getId(), date));
+        }
         return ResponseEntity.ok(scheduleService.getSchedulesByDate(date));
     }
 
@@ -106,6 +140,14 @@ public class CollectionScheduleController {
             @RequestParam LocalDate start,
             @RequestParam LocalDate end) {
         return ResponseEntity.ok(scheduleService.getSchedulesByCollectorAndDateRange(collectorId, start, end));
+    }
+
+    // US03 - Get schedules for collector (assigned + available PENDING without collector)
+    @GetMapping("/collector/me")
+    @PreAuthorize("hasRole('COLLECTOR')")
+    @Operation(summary = "Get schedules for current collector (assigned + available)")
+    public ResponseEntity<List<CollectionScheduleDTO>> getMySchedules(@AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(scheduleService.getSchedulesForCollector(currentUser.getId()));
     }
 
     // US02 - Establishment endpoints
@@ -173,6 +215,18 @@ public class CollectionScheduleController {
         String ipAddress = getClientIp(httpRequest);
         String userAgent = httpRequest.getHeader("User-Agent");
         return ResponseEntity.ok(scheduleService.confirmSchedule(id, currentUser, ipAddress, userAgent));
+    }
+
+    @PutMapping("/{id}/accept")
+    @PreAuthorize("hasRole('COLLECTOR')")
+    @Operation(summary = "Accept schedule (collector accepts pending schedule with no collector assigned)")
+    public ResponseEntity<CollectionScheduleDTO> acceptSchedule(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal User currentUser,
+            HttpServletRequest httpRequest) {
+        String ipAddress = getClientIp(httpRequest);
+        String userAgent = httpRequest.getHeader("User-Agent");
+        return ResponseEntity.ok(scheduleService.acceptSchedule(id, currentUser, ipAddress, userAgent));
     }
 
     @PutMapping("/{id}/start")
