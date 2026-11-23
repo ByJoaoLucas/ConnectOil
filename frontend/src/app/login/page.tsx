@@ -132,12 +132,6 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg text-sm text-gray-600">
-          <p className="font-medium text-gray-900 mb-2">Credenciais de demonstração:</p>
-          <div className="space-y-1 font-mono text-xs">
-            <p>Admin: admin@oilcollection.com / admin123</p>
-          </div>
-        </div>
       </div>
     </div>
   );
