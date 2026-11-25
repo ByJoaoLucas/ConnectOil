@@ -52,21 +52,27 @@ public class AuthService {
     public AuthResponseDTO login(AuthRequestDTO request, HttpServletRequest httpRequest) {
         String ipAddress = getClientIp(httpRequest);
         String userAgent = httpRequest.getHeader("User-Agent");
+        log.debug("Tentativa de login para email: {} de IP: {}", request.getEmail(), ipAddress);
 
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
+                .orElseThrow(() -> {
+                    log.warn("Tentativa de login com email inexistente: {} de IP: {}", request.getEmail(), ipAddress);
+                    return new BadCredentialsException("Credenciais inválidas");
+                });
 
         // Check account lockout
         if (user.isLocked()) {
+            log.warn("Tentativa de login em conta bloqueada: {} (bloqueada até: {})", user.getEmail(), user.getLockedUntil());
             auditLogService.log("USER_LOGIN", user.getId(), AuditLog.Action.LOGIN_FAILED.name(), user,
                     null, "{\"reason\":\"account_locked\",\"lockedUntil\":\"" + user.getLockedUntil() + "\"}", ipAddress, userAgent);
-            throw new BusinessException("Account temporarily locked. Try again later.", "ACCOUNT_LOCKED");
+            throw new BusinessException("Conta temporariamente bloqueada. Tente novamente mais tarde.", "ACCOUNT_LOCKED");
         }
 
         if (!user.getIsActive()) {
+            log.warn("Tentativa de login em conta inativa: {}", user.getEmail());
             auditLogService.log("USER_LOGIN", user.getId(), AuditLog.Action.LOGIN_FAILED.name(), user,
                     null, "{\"reason\":\"account_inactive\"}", ipAddress, userAgent);
-            throw new BusinessException("Account is deactivated", "ACCOUNT_INACTIVE");
+            throw new BusinessException("Conta desativada", "ACCOUNT_INACTIVE");
         }
 
         try {
@@ -86,6 +92,7 @@ public class AuthService {
             auditLogService.log("USER_LOGIN", user.getId(), AuditLog.Action.LOGIN.name(), user,
                     null, "{\"ip\":\"" + ipAddress + "\"}", ipAddress, userAgent);
 
+            log.info("Login realizado com sucesso para usuário: {} (ID: {})", user.getEmail(), user.getId());
             return new AuthResponseDTO(
                     accessToken,
                     refreshToken,
@@ -100,11 +107,13 @@ public class AuthService {
             user.incrementFailedLoginAttempts(maxAttempts, lockoutMinutes);
             userRepository.save(user);
 
+            log.warn("Credenciais inválidas para usuário: {} (tentativa {} de {})", user.getEmail(), user.getFailedLoginAttempts(), maxAttempts);
+
             // Log failed login
             auditLogService.log("USER_LOGIN", user.getId(), AuditLog.Action.LOGIN_FAILED.name(), user,
                     null, "{\"reason\":\"bad_credentials\",\"failedAttempts\":" + user.getFailedLoginAttempts() + "}", ipAddress, userAgent);
 
-            throw new BusinessException("Invalid credentials", "INVALID_CREDENTIALS");
+            throw new BusinessException("Credenciais inválidas", "INVALID_CREDENTIALS");
         }
     }
 
@@ -112,52 +121,63 @@ public class AuthService {
     public AuthResponseDTO register(UserDTO request, HttpServletRequest httpRequest) {
         String ipAddress = getClientIp(httpRequest);
         String userAgent = httpRequest.getHeader("User-Agent");
+        log.debug("Tentativa de registro para email: {} com role: {} de IP: {}", request.getEmail(), request.getRole(), ipAddress);
 
         User.UserRole role = request.getRole();
 
         // Validate role: only ESTABLISHMENT and COLLECTOR are allowed for public registration
         if (role == null || !PUBLIC_REGISTRATION_ROLES.contains(role)) {
-            throw new BusinessException("Invalid role for public registration", "INVALID_ROLE");
+            log.warn("Tentativa de registro com role inválida: {}", request.getRole());
+            throw new BusinessException("Role inválida para registro público", "INVALID_ROLE");
         }
 
         // Validate role-specific document and field requirements
         if (role == User.UserRole.ESTABLISHMENT) {
             if (request.getCnpj() == null || request.getCnpj().isBlank()) {
-                throw new BusinessException("CNPJ is required for establishment registration", "CNPJ_REQUIRED");
+                log.warn("Tentativa de registro de estabelecimento sem CNPJ: {}", request.getEmail());
+                throw new BusinessException("CNPJ é obrigatório para registro de estabelecimento", "CNPJ_REQUIRED");
             }
             // Validate CNPJ format (12 alphanumeric + 2 digits = 14 chars)
             if (!request.getCnpj().matches("^[A-Z0-9]{12}[0-9]{2}$")) {
-                throw new BusinessException("CNPJ must contain 12 alphanumeric characters followed by 2 digits", "INVALID_CNPJ");
+                log.warn("CNPJ inválido no registro: {}", request.getCnpj());
+                throw new BusinessException("CNPJ deve conter 12 caracteres alfanuméricos seguidos de 2 dígitos", "INVALID_CNPJ");
             }
             // Require establishment name
             if (request.getEstablishmentName() == null || request.getEstablishmentName().isBlank()) {
-                throw new BusinessException("Establishment name is required", "ESTABLISHMENT_NAME_REQUIRED");
+                log.warn("Tentativa de registro de estabelecimento sem nome: {}", request.getEmail());
+                throw new BusinessException("Nome do estabelecimento é obrigatório", "ESTABLISHMENT_NAME_REQUIRED");
             }
             // Require establishment address
             if (request.getEstablishmentAddress() == null || request.getEstablishmentAddress().isBlank()) {
-                throw new BusinessException("Establishment address is required", "ESTABLISHMENT_ADDRESS_REQUIRED");
+                log.warn("Tentativa de registro de estabelecimento sem endereço: {}", request.getEmail());
+                throw new BusinessException("Endereço do estabelecimento é obrigatório", "ESTABLISHMENT_ADDRESS_REQUIRED");
             }
         } else if (role == User.UserRole.COLLECTOR) {
             if (request.getCpf() == null || request.getCpf().isBlank()) {
-                throw new BusinessException("CPF is required for collector registration", "CPF_REQUIRED");
+                log.warn("Tentativa de registro de coletor sem CPF: {}", request.getEmail());
+                throw new BusinessException("CPF é obrigatório para registro de coletor", "CPF_REQUIRED");
             }
             // Validate CPF format (basic check - 11 digits)
             if (!request.getCpf().matches("^\\d{11}$")) {
-                throw new BusinessException("CPF must contain exactly 11 digits", "INVALID_CPF");
+                log.warn("CPF inválido no registro: {}", request.getCpf());
+                throw new BusinessException("CPF deve conter exatamente 11 dígitos", "INVALID_CPF");
             }
         }
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new BusinessException("Email already registered", "EMAIL_ALREADY_EXISTS");
+            log.warn("Tentativa de registro com email já existente: {}", request.getEmail());
+            throw new BusinessException("Email já cadastrado", "EMAIL_ALREADY_EXISTS");
         }
 
         // Check CPF duplicate if provided
         if (request.getCpf() != null && !request.getCpf().isBlank() && userRepository.existsByCpf(request.getCpf())) {
-            throw new BusinessException("CPF already registered", "CPF_ALREADY_EXISTS");
+            log.warn("Tentativa de registro com CPF já existente: {}", request.getCpf());
+            throw new BusinessException("CPF já cadastrado", "CPF_ALREADY_EXISTS");
         }
 
         // Check CNPJ duplicate if provided
         if (request.getCnpj() != null && !request.getCnpj().isBlank() && userRepository.existsByCnpj(request.getCnpj())) {
-            throw new BusinessException("CNPJ already registered", "CNPJ_ALREADY_EXISTS");
+            log.warn("Tentativa de registro com CNPJ já existente: {}", request.getCnpj());
+            throw new BusinessException("CNPJ já cadastrado", "CNPJ_ALREADY_EXISTS");
         }
 
         // Validate password complexity
@@ -181,7 +201,7 @@ public class AuthService {
                 .build();
 
         User savedUser = userRepository.save(user);
-        log.info("New user registered: {}", savedUser.getEmail());
+        log.info("Novo usuário registrado: {} (ID: {}, Role: {})", savedUser.getEmail(), savedUser.getId(), savedUser.getRole());
 
         // Log registration
         auditLogService.logCreate("USER", savedUser.getId(), savedUser,
@@ -205,21 +225,31 @@ public class AuthService {
 
     @Transactional(readOnly = true)
     public AuthResponseDTO.UserInfoDTO getCurrentUser(String email) {
+        log.debug("Buscando usuário atual para email: {}", email);
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
+                .orElseThrow(() -> {
+                    log.warn("Usuário não encontrado para email: {}", email);
+                    return new ResourceNotFoundException("User", "email", email);
+                });
         return AuthResponseDTO.UserInfoDTO.fromUser(user);
     }
 
     @Transactional
     public void deleteOwnAccount(User authenticatedUser, HttpServletRequest httpRequest) {
+        String ipAddress = getClientIp(httpRequest);
+        String userAgent = httpRequest.getHeader("User-Agent");
+        log.debug("Solicitação de exclusão de conta própria por usuário: {} (ID: {})", authenticatedUser.getEmail(), authenticatedUser.getId());
+
         User user = userRepository.findById(authenticatedUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", authenticatedUser.getId()));
 
         if (user.getRole() != User.UserRole.COLLECTOR && user.getRole() != User.UserRole.ESTABLISHMENT) {
-            throw new BusinessException("Only collector and establishment accounts can be deleted here", "ACCOUNT_DELETION_NOT_ALLOWED");
+            log.warn("Tentativa de exclusão de conta por role não permitida: {} (role: {})", user.getEmail(), user.getRole());
+            throw new BusinessException("Apenas contas de coletor e estabelecimento podem ser excluídas aqui", "ACCOUNT_DELETION_NOT_ALLOWED");
         }
         if (!Boolean.TRUE.equals(user.getIsActive())) {
-            throw new BusinessException("Account is already deactivated", "ACCOUNT_ALREADY_DELETED");
+            log.warn("Tentativa de exclusão de conta já desativada: {}", user.getEmail());
+            throw new BusinessException("Conta já está desativada", "ACCOUNT_ALREADY_DELETED");
         }
 
         // Keep historical collection records and their foreign keys intact while revoking access.
@@ -227,30 +257,38 @@ public class AuthService {
         userRepository.save(user);
         auditLogService.logDelete("USER", user.getId(), user,
                 "{\"email\":\"" + user.getEmail() + "\",\"role\":\"" + user.getRole() + "\"}",
-                getClientIp(httpRequest), httpRequest.getHeader("User-Agent"));
-        log.info("User account deactivated by owner: {}", user.getEmail());
+                ipAddress, userAgent);
+        log.info("Conta desativada pelo próprio usuário: {} (ID: {})", user.getEmail(), user.getId());
     }
 
     @Transactional
     public AuthResponseDTO refreshToken(String refreshToken, HttpServletRequest httpRequest) {
         String ipAddress = getClientIp(httpRequest);
         String userAgent = httpRequest.getHeader("User-Agent");
+        log.debug("Tentativa de renovação de token de IP: {}", ipAddress);
 
         if (!jwtTokenProvider.validateToken(refreshToken)) {
-            throw new BusinessException("Invalid refresh token", "INVALID_REFRESH_TOKEN");
+            log.warn("Tentativa de renovação com refresh token inválido de IP: {}", ipAddress);
+            throw new BusinessException("Refresh token inválido", "INVALID_REFRESH_TOKEN");
         }
 
         String email = jwtTokenProvider.getUsernameFromToken(refreshToken);
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
+                .orElseThrow(() -> {
+                    log.warn("Usuário não encontrado para email no refresh token: {}", email);
+                    return new ResourceNotFoundException("User", "email", email);
+                });
 
         if (!user.getIsActive() || user.isLocked()) {
-            throw new BusinessException("Account is not active or locked", "ACCOUNT_LOCKED");
+            log.warn("Tentativa de renovação de token para conta inativa ou bloqueada: {}", user.getEmail());
+            throw new BusinessException("Conta não está ativa ou está bloqueada", "ACCOUNT_LOCKED");
         }
 
         // Log token refresh
         auditLogService.log("TOKEN_REFRESH", user.getId(), AuditLog.Action.TOKEN_REFRESH.name(), user,
                 null, "{\"ip\":\"" + ipAddress + "\"}", ipAddress, userAgent);
+
+        log.debug("Token renovado com sucesso para usuário: {}", user.getEmail());
 
         Authentication authentication = new UsernamePasswordAuthenticationToken(
                 user, null, user.getAuthorities()
@@ -272,14 +310,16 @@ public class AuthService {
     public void changePassword(UUID userId, String currentPassword, String newPassword, HttpServletRequest httpRequest) {
         String ipAddress = getClientIp(httpRequest);
         String userAgent = httpRequest.getHeader("User-Agent");
+        log.debug("Tentativa de alteração de senha para usuário ID: {}", userId);
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            log.warn("Senha atual incorreta para usuário: {}", user.getEmail());
             auditLogService.log("PASSWORD_CHANGE", user.getId(), AuditLog.Action.PASSWORD_CHANGE_FAILED.name(), user,
                     null, "{\"reason\":\"invalid_current_password\"}", ipAddress, userAgent);
-            throw new BusinessException("Current password is incorrect", "INVALID_CURRENT_PASSWORD");
+            throw new BusinessException("Senha atual incorreta", "INVALID_CURRENT_PASSWORD");
         }
 
         // Validate new password complexity
@@ -298,7 +338,7 @@ public class AuthService {
         auditLogService.logUpdate("USER", user.getId(), user,
                 oldValues, "{\"passwordChangedAt\":\"" + user.getPasswordChangedAt() + "\"}", ipAddress, userAgent);
 
-        log.info("Password changed for user: {}", user.getEmail());
+        log.info("Senha alterada para usuário: {} (ID: {})", user.getEmail(), user.getId());
     }
 
     private void validatePasswordComplexity(String password) {
@@ -308,25 +348,35 @@ public class AuthService {
         boolean requireNumber = systemConfigService.getPasswordRequireNumber();
         boolean requireSpecial = systemConfigService.getPasswordRequireSpecial();
 
+        log.debug("Validando complexidade da senha (minLength: {}, requireUppercase: {}, requireLowercase: {}, requireNumber: {}, requireSpecial: {})",
+                minLength, requireUppercase, requireLowercase, requireNumber, requireSpecial);
+
         if (password.length() < minLength) {
-            throw new BusinessException("Password must be at least " + minLength + " characters", "WEAK_PASSWORD");
+            log.warn("Senha muito curta: {} caracteres (mínimo: {})", password.length(), minLength);
+            throw new BusinessException("A senha deve ter pelo menos " + minLength + " caracteres", "WEAK_PASSWORD");
         }
 
         if (requireUppercase && !UPPERCASE_PATTERN.matcher(password).find()) {
-            throw new BusinessException("Password must contain at least one uppercase letter", "WEAK_PASSWORD");
+            log.warn("Senha não contém letra maiúscula");
+            throw new BusinessException("A senha deve conter pelo menos uma letra maiúscula", "WEAK_PASSWORD");
         }
 
         if (requireLowercase && !LOWERCASE_PATTERN.matcher(password).find()) {
-            throw new BusinessException("Password must contain at least one lowercase letter", "WEAK_PASSWORD");
+            log.warn("Senha não contém letra minúscula");
+            throw new BusinessException("A senha deve conter pelo menos uma letra minúscula", "WEAK_PASSWORD");
         }
 
         if (requireNumber && !NUMBER_PATTERN.matcher(password).find()) {
-            throw new BusinessException("Password must contain at least one number", "WEAK_PASSWORD");
+            log.warn("Senha não contém número");
+            throw new BusinessException("A senha deve conter pelo menos um número", "WEAK_PASSWORD");
         }
 
         if (requireSpecial && !SPECIAL_PATTERN.matcher(password).find()) {
-            throw new BusinessException("Password must contain at least one special character", "WEAK_PASSWORD");
+            log.warn("Senha não contém caractere especial");
+            throw new BusinessException("A senha deve conter pelo menos um caractere especial", "WEAK_PASSWORD");
         }
+
+        log.debug("Validação de complexidade da senha aprovada");
     }
 
     private String getClientIp(HttpServletRequest request) {

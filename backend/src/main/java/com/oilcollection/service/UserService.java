@@ -27,48 +27,63 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final AuditLogService auditLogService;
 
+    private static final String LOG_PREFIX = "[UserService]";
+
     @Transactional(readOnly = true)
     public Page<UserDTO> getAllUsers(Pageable pageable) {
+        log.debug("{} Buscando todos os usuários com paginação: {}", LOG_PREFIX, pageable);
         return userRepository.findAll(pageable).map(UserDTO::fromEntity);
     }
 
     @Transactional(readOnly = true)
     public List<UserDTO> getAllUsers() {
+        log.debug("{} Buscando todos os usuários como lista", LOG_PREFIX);
         return userRepository.findAll().stream().map(UserDTO::fromEntity).toList();
     }
 
     @Transactional(readOnly = true)
     public UserDTO getUserById(UUID id) {
+        log.debug("{} Buscando usuário por ID: {}", LOG_PREFIX, id);
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
+                .orElseThrow(() -> {
+                    log.warn("{} Usuário não encontrado: {}", LOG_PREFIX, id);
+                    return new ResourceNotFoundException("User", "id", id);
+                });
         return UserDTO.fromEntity(user);
     }
 
     @Transactional(readOnly = true)
     public Page<UserDTO> getUsersByRole(User.UserRole role, Pageable pageable) {
+        log.debug("{} Buscando usuários por role: {} com paginação: {}", LOG_PREFIX, role, pageable);
         return userRepository.findByRole(role, pageable).map(UserDTO::fromEntity);
     }
 
     @Transactional(readOnly = true)
     public List<UserDTO> getActiveCollectors() {
+        log.debug("{} Buscando coletores ativos", LOG_PREFIX);
         return userRepository.findByIsActiveTrueAndRole(User.UserRole.COLLECTOR)
                 .stream().map(UserDTO::fromEntity).toList();
     }
 
     @Transactional
     public UserDTO createUser(UserDTO request, User createdBy, String ipAddress, String userAgent) {
+        log.info("{} Criando usuário: {} (role: {}) por usuário: {}", LOG_PREFIX, request.getEmail(), request.getRole(), createdBy.getEmail());
+
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new BusinessException("Email already registered", "EMAIL_ALREADY_EXISTS");
+            log.warn("{} Tentativa de criar usuário com email já existente: {}", LOG_PREFIX, request.getEmail());
+            throw new BusinessException("Email já cadastrado", "EMAIL_ALREADY_EXISTS");
         }
 
         if (request.getCpf() != null && !request.getCpf().isBlank()
                 && userRepository.existsByCpf(request.getCpf())) {
-            throw new BusinessException("CPF already registered", "CPF_ALREADY_EXISTS");
+            log.warn("{} Tentativa de criar usuário com CPF já existente: {}", LOG_PREFIX, request.getCpf());
+            throw new BusinessException("CPF já cadastrado", "CPF_ALREADY_EXISTS");
         }
 
         if (request.getCnpj() != null && !request.getCnpj().isBlank()
                 && userRepository.existsByCnpj(request.getCnpj())) {
-            throw new BusinessException("CNPJ already registered", "CNPJ_ALREADY_EXISTS");
+            log.warn("{} Tentativa de criar usuário com CNPJ já existente: {}", LOG_PREFIX, request.getCnpj());
+            throw new BusinessException("CNPJ já cadastrado", "CNPJ_ALREADY_EXISTS");
         }
 
         User user = User.builder()
@@ -94,31 +109,39 @@ public class UserService {
         auditLogService.logCreate("USER", savedUser.getId(), createdBy,
                 "{\"email\":\"" + savedUser.getEmail() + "\",\"role\":\"" + savedUser.getRole() + "\"}", ipAddress, userAgent);
 
-        log.info("User created: {} by {}", savedUser.getEmail(), createdBy.getEmail());
+        log.info("{} Usuário criado: ID={}, Email={}, Nome={}, Role={}, Ativo={}, por={}", LOG_PREFIX, savedUser.getId(), savedUser.getEmail(), savedUser.getName(), savedUser.getRole(), savedUser.getIsActive(), createdBy.getEmail());
         return UserDTO.fromEntity(savedUser);
     }
 
     @Transactional
     public UserDTO updateUser(UUID id, UserDTO request, User updatedBy, String ipAddress, String userAgent) {
+        log.info("{} Atualizando usuário ID: {} por usuário: {}", LOG_PREFIX, id, updatedBy.getEmail());
+
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
+                .orElseThrow(() -> {
+                    log.warn("{} Usuário não encontrado para atualização: {}", LOG_PREFIX, id);
+                    return new ResourceNotFoundException("User", "id", id);
+                });
 
         String oldValues = toJson(user);
 
         if (!user.getEmail().equals(request.getEmail()) && userRepository.existsByEmail(request.getEmail())) {
-            throw new BusinessException("Email already registered", "EMAIL_ALREADY_EXISTS");
+            log.warn("{} Tentativa de atualizar usuário para email já existente: {}", LOG_PREFIX, request.getEmail());
+            throw new BusinessException("Email já cadastrado", "EMAIL_ALREADY_EXISTS");
         }
 
         if (request.getCpf() != null && !request.getCpf().isBlank()
                 && !request.getCpf().equals(user.getCpf())
                 && userRepository.existsByCpf(request.getCpf())) {
-            throw new BusinessException("CPF already registered", "CPF_ALREADY_EXISTS");
+            log.warn("{} Tentativa de atualizar usuário para CPF já existente: {}", LOG_PREFIX, request.getCpf());
+            throw new BusinessException("CPF já cadastrado", "CPF_ALREADY_EXISTS");
         }
 
         if (request.getCnpj() != null && !request.getCnpj().isBlank()
                 && !request.getCnpj().equals(user.getCnpj())
                 && userRepository.existsByCnpj(request.getCnpj())) {
-            throw new BusinessException("CNPJ already registered", "CNPJ_ALREADY_EXISTS");
+            log.warn("{} Tentativa de atualizar usuário para CNPJ já existente: {}", LOG_PREFIX, request.getCnpj());
+            throw new BusinessException("CNPJ já cadastrado", "CNPJ_ALREADY_EXISTS");
         }
 
         user.setName(request.getName());
@@ -137,6 +160,7 @@ public class UserService {
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
             user.setPasswordChangedAt(java.time.LocalDateTime.now());
+            log.debug("{} Senha do usuário atualizada", LOG_PREFIX);
         }
 
         User updatedUser = userRepository.save(user);
@@ -145,14 +169,19 @@ public class UserService {
         auditLogService.logUpdate("USER", updatedUser.getId(), updatedBy,
                 oldValues, toJson(updatedUser), ipAddress, userAgent);
 
-        log.info("User updated: {} by {}", updatedUser.getEmail(), updatedBy.getEmail());
+        log.info("{} Usuário atualizado: ID={}, Email={}, Nome={}, Role={}, Ativo={}, por={}", LOG_PREFIX, updatedUser.getId(), updatedUser.getEmail(), updatedUser.getName(), updatedUser.getRole(), updatedUser.getIsActive(), updatedBy.getEmail());
         return UserDTO.fromEntity(updatedUser);
     }
 
     @Transactional
     public void deleteUser(UUID id, User deletedBy, String ipAddress, String userAgent) {
+        log.info("{} Desativando usuário ID: {} por usuário: {}", LOG_PREFIX, id, deletedBy.getEmail());
+
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
+                .orElseThrow(() -> {
+                    log.warn("{} Usuário não encontrado para desativação: {}", LOG_PREFIX, id);
+                    return new ResourceNotFoundException("User", "id", id);
+                });
 
         String oldValues = toJson(user);
 
@@ -163,13 +192,18 @@ public class UserService {
         auditLogService.logUpdate("USER", user.getId(), deletedBy,
                 oldValues, "{\"isActive\":false}", ipAddress, userAgent);
 
-        log.info("User deactivated: {} by {}", user.getEmail(), deletedBy.getEmail());
+        log.info("{} Usuário desativado: ID={}, Email={}, por={}", LOG_PREFIX, id, user.getEmail(), deletedBy.getEmail());
     }
 
     @Transactional
     public UserDTO activateUser(UUID id, User activatedBy, String ipAddress, String userAgent) {
+        log.info("{} Ativando usuário ID: {} por usuário: {}", LOG_PREFIX, id, activatedBy.getEmail());
+
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
+                .orElseThrow(() -> {
+                    log.warn("{} Usuário não encontrado para ativação: {}", LOG_PREFIX, id);
+                    return new ResourceNotFoundException("User", "id", id);
+                });
 
         String oldValues = toJson(user);
 
@@ -180,14 +214,19 @@ public class UserService {
         auditLogService.logUpdate("USER", activatedUser.getId(), activatedBy,
                 oldValues, "{\"isActive\":true}", ipAddress, userAgent);
 
-        log.info("User activated: {} by {}", activatedUser.getEmail(), activatedBy.getEmail());
+        log.info("{} Usuário ativado: ID={}, Email={}, por={}", LOG_PREFIX, activatedUser.getId(), activatedUser.getEmail(), activatedBy.getEmail());
         return UserDTO.fromEntity(activatedUser);
     }
 
     @Transactional
     public UserDTO assignCollectorRole(UUID id, User assignedBy, String ipAddress, String userAgent) {
+        log.info("{} Atribuindo papel de COLETOR ao usuário ID: {} por usuário: {}", LOG_PREFIX, id, assignedBy.getEmail());
+
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
+                .orElseThrow(() -> {
+                    log.warn("{} Usuário não encontrado para atribuição de papel: {}", LOG_PREFIX, id);
+                    return new ResourceNotFoundException("User", "id", id);
+                });
 
         String oldValues = toJson(user);
 
@@ -198,7 +237,7 @@ public class UserService {
         auditLogService.logUpdate("USER", updatedUser.getId(), assignedBy,
                 oldValues, toJson(updatedUser), ipAddress, userAgent);
 
-        log.info("User assigned as collector: {} by {}", updatedUser.getEmail(), assignedBy.getEmail());
+        log.info("{} Papel de COLETOR atribuído ao usuário: ID={}, Email={}, por={}", LOG_PREFIX, updatedUser.getId(), updatedUser.getEmail(), assignedBy.getEmail());
         return UserDTO.fromEntity(updatedUser);
     }
 
