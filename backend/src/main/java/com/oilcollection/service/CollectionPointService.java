@@ -91,10 +91,37 @@ public class CollectionPointService {
                 .stream().map(CollectionPointDTO::fromEntity).toList();
     }
 
+    // US02 - Get points for establishment (only their own)
+    @Transactional(readOnly = true)
+    public Page<CollectionPointDTO> getPointsByEstablishment(UUID establishmentId, Pageable pageable) {
+        User establishment = userRepository.findById(establishmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Establishment", "id", establishmentId));
+        if (establishment.getRole() != User.UserRole.ESTABLISHMENT) {
+            throw new BusinessException("User must have ESTABLISHMENT role", "INVALID_ESTABLISHMENT_ROLE");
+        }
+        return pointRepository.findByEstablishment(establishment, pageable).map(CollectionPointDTO::fromEntity);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CollectionPointDTO> getPointsByEstablishment(UUID establishmentId) {
+        User establishment = userRepository.findById(establishmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Establishment", "id", establishmentId));
+        if (establishment.getRole() != User.UserRole.ESTABLISHMENT) {
+            throw new BusinessException("User must have ESTABLISHMENT role", "INVALID_ESTABLISHMENT_ROLE");
+        }
+        return pointRepository.findByEstablishment(establishment)
+                .stream().map(CollectionPointDTO::fromEntity).toList();
+    }
+
     @Transactional
     public CollectionPointDTO createPoint(CollectionPointDTO request, User createdBy, String ipAddress, String userAgent) {
         CollectionPoint point = new CollectionPoint();
         mapDTOToEntity(request, point);
+
+        // US02 - If ESTABLISHMENT creates point, they become the owner
+        if (createdBy.getRole() == User.UserRole.ESTABLISHMENT) {
+            point.setEstablishment(createdBy);
+        }
 
         CollectionPoint savedPoint = pointRepository.save(point);
 
@@ -110,6 +137,14 @@ public class CollectionPointService {
     public CollectionPointDTO updatePoint(UUID id, CollectionPointDTO request, User updatedBy, String ipAddress, String userAgent) {
         CollectionPoint point = pointRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection Point", "id", id));
+
+        // US02 - ESTABLISHMENT can only update their own points
+        if (updatedBy.getRole() == User.UserRole.ESTABLISHMENT) {
+            if (point.getEstablishment() == null || !point.getEstablishment().getId().equals(updatedBy.getId())) {
+                throw new BusinessException("You can only update your own collection points", "POINT_NOT_OWNED");
+            }
+            // Ignore establishmentId from request body - ownership cannot be changed
+        }
 
         String oldValues = toJson(point);
 
@@ -130,6 +165,11 @@ public class CollectionPointService {
         CollectionPoint point = pointRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection Point", "id", id));
 
+        // US02 - ESTABLISHMENT cannot delete points (only ADMIN can)
+        if (deletedBy.getRole() == User.UserRole.ESTABLISHMENT) {
+            throw new BusinessException("Establishments cannot delete collection points", "ESTABLISHMENT_CANNOT_DELETE");
+        }
+
         String oldValues = toJson(point);
 
         pointRepository.delete(point);
@@ -145,6 +185,13 @@ public class CollectionPointService {
     public CollectionPointDTO assignCollector(UUID pointId, UUID collectorId, User assignedBy, String ipAddress, String userAgent) {
         CollectionPoint point = pointRepository.findById(pointId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection Point", "id", pointId));
+
+        // US02 - ESTABLISHMENT can only assign collector to their own points
+        if (assignedBy.getRole() == User.UserRole.ESTABLISHMENT) {
+            if (point.getEstablishment() == null || !point.getEstablishment().getId().equals(assignedBy.getId())) {
+                throw new BusinessException("You can only assign collectors to your own collection points", "POINT_NOT_OWNED");
+            }
+        }
 
         User collector = userRepository.findById(collectorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collector", "id", collectorId));
@@ -173,6 +220,13 @@ public class CollectionPointService {
         CollectionPoint point = pointRepository.findById(pointId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection Point", "id", pointId));
 
+        // US02 - ESTABLISHMENT can only unassign collector from their own points
+        if (unassignedBy.getRole() == User.UserRole.ESTABLISHMENT) {
+            if (point.getEstablishment() == null || !point.getEstablishment().getId().equals(unassignedBy.getId())) {
+                throw new BusinessException("You can only unassign collectors from your own collection points", "POINT_NOT_OWNED");
+            }
+        }
+
         String oldValues = toJson(point);
 
         point.setCollector(null);
@@ -192,6 +246,13 @@ public class CollectionPointService {
     public CollectionPointDTO updateVolume(UUID pointId, Integer volumeLiters, User updatedBy, String ipAddress, String userAgent) {
         CollectionPoint point = pointRepository.findById(pointId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection Point", "id", pointId));
+
+        // US02 - ESTABLISHMENT can only update volume on their own points
+        if (updatedBy.getRole() == User.UserRole.ESTABLISHMENT) {
+            if (point.getEstablishment() == null || !point.getEstablishment().getId().equals(updatedBy.getId())) {
+                throw new BusinessException("You can only update volume on your own collection points", "POINT_NOT_OWNED");
+            }
+        }
 
         if (volumeLiters < 0) {
             throw new BusinessException("Volume cannot be negative", "INVALID_VOLUME");
@@ -226,6 +287,13 @@ public class CollectionPointService {
         CollectionPoint point = pointRepository.findById(pointId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection Point", "id", pointId));
 
+        // US02 - ESTABLISHMENT can only add volume on their own points
+        if (updatedBy.getRole() == User.UserRole.ESTABLISHMENT) {
+            if (point.getEstablishment() == null || !point.getEstablishment().getId().equals(updatedBy.getId())) {
+                throw new BusinessException("You can only add volume on your own collection points", "POINT_NOT_OWNED");
+            }
+        }
+
         int newVolume = point.getCurrentVolumeLiters() + additionalLiters;
         return updateVolume(pointId, newVolume, updatedBy, ipAddress, userAgent);
     }
@@ -234,6 +302,13 @@ public class CollectionPointService {
     public CollectionPointDTO removeVolume(UUID pointId, Integer removedLiters, User updatedBy, String ipAddress, String userAgent) {
         CollectionPoint point = pointRepository.findById(pointId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection Point", "id", pointId));
+
+        // US02 - ESTABLISHMENT can only remove volume on their own points
+        if (updatedBy.getRole() == User.UserRole.ESTABLISHMENT) {
+            if (point.getEstablishment() == null || !point.getEstablishment().getId().equals(updatedBy.getId())) {
+                throw new BusinessException("You can only remove volume on your own collection points", "POINT_NOT_OWNED");
+            }
+        }
 
         int newVolume = Math.max(0, point.getCurrentVolumeLiters() - removedLiters);
         return updateVolume(pointId, newVolume, updatedBy, ipAddress, userAgent);
@@ -278,4 +353,4 @@ public class CollectionPointService {
         );
     }
 
-    }
+}

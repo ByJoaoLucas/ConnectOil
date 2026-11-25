@@ -8,7 +8,7 @@ import React, {
   useState,
   ReactNode,
 } from 'react';
-import { api } from '@/lib/api';
+import { api, authApi } from '@/lib/api';
 import { User, AuthResponse, RegisterData } from '@/types';
 
 interface AuthContextType {
@@ -22,6 +22,7 @@ interface AuthContextType {
   logout: () => void;
   refreshAccessToken: () => Promise<void>;
   updateUser: (user: Partial<User>) => void;
+  deleteAccount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -45,6 +46,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     delete api.defaults.headers.common['Authorization'];
   }, []);
+
+  const deleteAccount = useCallback(async () => {
+    await authApi.deleteAccount();
+    logout();
+  }, [logout]);
 
   const refreshAccessToken = useCallback(async () => {
     const currentRefreshToken = typeof window !== 'undefined'
@@ -161,6 +167,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logout,
         refreshAccessToken,
         updateUser,
+        deleteAccount,
       }}
     >
       {children}

@@ -25,6 +25,7 @@ import { ptBR } from 'date-fns/locale';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface CollectionPointFormData {
   name: string;
@@ -34,8 +35,6 @@ interface CollectionPointFormData {
   city: string;
   state: string;
   zipCode?: string;
-  latitude?: number;
-  longitude?: number;
   capacityLiters?: number;
   contactName?: string;
   contactPhone?: string;
@@ -52,9 +51,7 @@ const pointSchema = z.object({
   city: z.string().min(2, 'Cidade é obrigatória').max(100),
   state: z.string().length(2, 'Estado deve ter 2 caracteres'),
   zipCode: z.string().regex(/^\d{5}-?\d{3}$/, 'CEP inválido').optional().or(z.literal('')),
-  latitude: z.number().min(-90).max(90).optional(),
-  longitude: z.number().min(-180).max(180).optional(),
-  capacityLiters: z.number().min(1).max(100000).optional(),
+  capacityLiters: z.number().min(1).max(9999999).optional(),
   contactName: z.string().max(100).optional(),
   contactPhone: z.string().optional(),
   contactEmail: z.string().email('E-mail inválido').optional().or(z.literal('')),
@@ -63,15 +60,19 @@ const pointSchema = z.object({
 });
 
 export default function CollectionPointsPage() {
+  const { user } = useAuth();
+  const isEstablishment = user?.role === 'ESTABLISHMENT';
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<PointStatus | 'ALL'>('ALL');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPoint, setEditingPoint] = useState<CollectionPoint | null>(null);
   const queryClient = useQueryClient();
 
+  const pointsQueryKey = isEstablishment ? ['collectionPoints', 'my'] : ['collectionPoints'];
+
   const { data: pointsData, isLoading } = useQuery({
-    queryKey: ['collectionPoints'],
-    queryFn: () => collectionPointsApi.getAllList(),
+    queryKey: pointsQueryKey,
+    queryFn: () => isEstablishment ? collectionPointsApi.getMyPointsList() : collectionPointsApi.getAllList(),
   });
 
   const points: CollectionPoint[] = pointsData?.data || [];
@@ -88,7 +89,7 @@ export default function CollectionPointsPage() {
   const createMutation = useMutation({
     mutationFn: (data: CollectionPointFormData) => collectionPointsApi.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['collectionPoints'] });
+      queryClient.invalidateQueries({ queryKey: pointsQueryKey });
       toast.success('Ponto de coleta criado com sucesso!');
       setIsModalOpen(false);
     },
@@ -101,7 +102,7 @@ export default function CollectionPointsPage() {
     mutationFn: ({ id, data }: { id: string; data: CollectionPointFormData }) =>
       collectionPointsApi.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['collectionPoints'] });
+      queryClient.invalidateQueries({ queryKey: pointsQueryKey });
       toast.success('Ponto de coleta atualizado com sucesso!');
       setIsModalOpen(false);
       setEditingPoint(null);
@@ -114,7 +115,7 @@ export default function CollectionPointsPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => collectionPointsApi.delete(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['collectionPoints'] });
+      queryClient.invalidateQueries({ queryKey: pointsQueryKey });
       toast.success('Ponto de coleta excluído com sucesso!');
     },
     onError: (error: any) => {
@@ -151,7 +152,9 @@ export default function CollectionPointsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="page-title">Pontos de Coleta</h1>
-          <p className="page-subtitle">Gerencie os pontos de coleta de óleo</p>
+          <p className="page-subtitle">
+            {isEstablishment ? 'Gerencie seus pontos de coleta de óleo' : 'Gerencie os pontos de coleta de óleo'}
+          </p>
         </div>
         <button onClick={openCreateModal} className="btn-primary">
           <Plus className="w-4 h-4 mr-2" />
@@ -217,8 +220,16 @@ export default function CollectionPointsPage() {
                     <tr>
                       <td colSpan={8} className="text-center py-12 text-gray-500">
                         <MapPin className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                        <p className="text-lg">Nenhum ponto de coleta encontrado</p>
-                        <p className="text-sm">Tente ajustar os filtros ou cadastre um novo ponto</p>
+                        <p className="text-lg">
+                          {isEstablishment
+                            ? 'Você ainda não possui pontos de coleta cadastrados'
+                            : 'Nenhum ponto de coleta encontrado'}
+                        </p>
+                        <p className="text-sm">
+                          {isEstablishment
+                            ? 'Cadastre seu primeiro ponto de coleta para começar a agendar coletas.'
+                            : 'Tente ajustar os filtros ou cadastre um novo ponto'}
+                        </p>
                       </td>
                     </tr>
                   ) : (
@@ -272,20 +283,32 @@ export default function CollectionPointsPage() {
                             >
                               <MapPin className="w-5 h-5" />
                             </Link>
-                            <button
-                              onClick={() => handleEdit(point)}
-                              className="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-                              title="Editar"
-                            >
-                              <Edit className="w-5 h-5" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(point.id)}
-                              className="p-2 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50"
-                              title="Excluir"
-                            >
-                              <Trash2 className="w-5 h-5" />
-                            </button>
+                            {!isEstablishment || (isEstablishment && point.status !== 'PENDING_APPROVAL') ? (
+                              <button
+                                onClick={() => handleEdit(point)}
+                                className="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                                title="Editar"
+                              >
+                                <Edit className="w-5 h-5" />
+                              </button>
+                            ) : (
+                              <button
+                                className="p-2 rounded-lg text-gray-300 cursor-not-allowed"
+                                title="Aguardando aprovação"
+                                disabled
+                              >
+                                <Edit className="w-5 h-5" />
+                              </button>
+                            )}
+                            {!isEstablishment && (
+                              <button
+                                onClick={() => handleDelete(point.id)}
+                                className="p-2 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50"
+                                title="Excluir"
+                              >
+                                <Trash2 className="w-5 h-5" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -405,22 +428,30 @@ function CollectionPointForm({
 
         <div>
           <label className="label">CEP</label>
-          <input {...register('zipCode')} className="input" placeholder="00000-000" />
-        </div>
-
-        <div>
-          <label className="label">Latitude</label>
-          <input {...register('latitude', { valueAsNumber: true })} type="number" step="any" className="input" placeholder="-23.5505" />
-        </div>
-
-        <div>
-          <label className="label">Longitude</label>
-          <input {...register('longitude', { valueAsNumber: true })} type="number" step="any" className="input" placeholder="-46.6333" />
+          <input
+            {...register('zipCode')}
+            className="input"
+            placeholder="00000-000"
+            maxLength={9}
+            onChange={(e) => {
+              const value = e.target.value.replace(/\D/g, '');
+              const formatted = value.replace(/(\d{5})(\d)/, '$1-$2');
+              setValue('zipCode', formatted);
+            }}
+          />
         </div>
 
         <div>
           <label className="label">Capacidade (Litros)</label>
-          <input {...register('capacityLiters', { valueAsNumber: true })} type="number" min="1" className="input" placeholder="1000" />
+          <input
+            {...register('capacityLiters', { valueAsNumber: true })}
+            type="number"
+            min="1"
+            max="9999999"
+            className="input"
+            placeholder="1000"
+            maxLength={7}
+          />
         </div>
 
         <div>
@@ -430,7 +461,19 @@ function CollectionPointForm({
 
         <div>
           <label className="label">Telefone do Contato</label>
-          <input {...register('contactPhone')} className="input" placeholder="(11) 99999-9999" />
+          <input
+            {...register('contactPhone')}
+            className="input"
+            placeholder="(11) 99999-9999"
+            maxLength={15}
+            onChange={(e) => {
+              const value = e.target.value.replace(/\D/g, '');
+              const formatted = value
+                .replace(/(\d{2})(\d)/, '($1) $2')
+                .replace(/(\d{5})(\d{1,4})$/, '$1-$2');
+              setValue('contactPhone', formatted);
+            }}
+          />
         </div>
 
         <div>

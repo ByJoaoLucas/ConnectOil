@@ -60,4 +60,9 @@ public interface CollectionPointRepository extends JpaRepository<CollectionPoint
     List<CollectionPoint> findByCollectorId(UUID collectorId);
 
     List<CollectionPoint> findByIdIn(List<UUID> ids);
+
+    // US02 - Find points by establishment
+    Page<CollectionPoint> findByEstablishment(User establishment, Pageable pageable);
+
+    List<CollectionPoint> findByEstablishment(User establishment);
 }

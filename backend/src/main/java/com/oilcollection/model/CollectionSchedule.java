@@ -38,7 +38,7 @@ public class CollectionSchedule {
     private CollectionPoint collectionPoint;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "collector_id", nullable = false)
+    @JoinColumn(name = "collector_id", nullable = true)
     private User collector;
 
     @Column(name = "scheduled_date", nullable = false)

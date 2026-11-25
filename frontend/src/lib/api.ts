@@ -89,6 +89,8 @@ export const authApi = {
     api.put('/auth/password', null, { params: { currentPassword, newPassword } }),
   updateProfile: (data: any) =>
     api.put('/users/me', data),
+  deleteAccount: () =>
+    api.delete('/auth/account'),
 };
 
 export const usersApi = {
@@ -135,6 +137,11 @@ export const collectionPointsApi = {
     api.get(`/collection-points/city/${city}/state/${state}`),
   getUnassigned: () =>
     api.get('/collection-points/unassigned'),
+  // US02 - Establishment endpoints
+  getMyPoints: (params?: { page?: number; size?: number }) =>
+    api.get('/collection-points/my-points', { params }),
+  getMyPointsList: () =>
+    api.get('/collection-points/my-points/list'),
   create: (data: any) =>
     api.post('/collection-points', data),
   update: (id: string, data: any) =>
@@ -174,12 +181,22 @@ export const schedulesApi = {
     api.get('/schedules/overdue'),
   getByCollectorAndDateRange: (collectorId: string, start: string, end: string) =>
     api.get(`/schedules/collector/${collectorId}/range`, { params: { start, end } }),
+  // US03 - Collector endpoint (assigned + available)
+  getMySchedules: () =>
+    api.get('/schedules/collector/me'),
+  // US02 - Establishment endpoints
+  getEstablishmentSchedules: (params?: { page?: number; size?: number }) =>
+    api.get('/schedules/my-schedules', { params }),
+  getEstablishmentSchedulesList: () =>
+    api.get('/schedules/my-schedules/list'),
   create: (data: any) =>
     api.post('/schedules', data),
   update: (id: string, data: any) =>
     api.put(`/schedules/${id}`, data),
   confirm: (id: string) =>
     api.put(`/schedules/${id}/confirm`),
+  accept: (id: string) =>
+    api.put(`/schedules/${id}/accept`),
   start: (id: string) =>
     api.put(`/schedules/${id}/start`),
   arrive: (id: string) =>
@@ -305,6 +322,8 @@ export const notificationsApi = {
     api.put(`/notifications/${id}/read`),
   markAllAsRead: () =>
     api.put('/notifications/read-all'),
+  deleteNotification: (id: string) =>
+    api.delete(`/notifications/${id}`),
 };
 
 export const collectorCoverageApi = {

@@ -17,6 +17,8 @@ import java.util.UUID;
 @Repository
 public interface CollectionScheduleRepository extends JpaRepository<CollectionSchedule, UUID> {
 
+    List<CollectionSchedule> findAllByOrderByCreatedAtDesc();
+
     List<CollectionSchedule> findByCollectorAndStatus(User collector, CollectionSchedule.ScheduleStatus status);
 
     Page<CollectionSchedule> findByCollectorAndStatus(User collector, CollectionSchedule.ScheduleStatus status, Pageable pageable);
@@ -56,4 +58,16 @@ public interface CollectionScheduleRepository extends JpaRepository<CollectionSc
 
     @Query("SELECT COUNT(s) FROM CollectionSchedule s WHERE s.scheduledDate < :today AND s.status = :pendingStatus")
     long countOverdueSchedules(@Param("today") LocalDate today, @Param("pendingStatus") CollectionSchedule.ScheduleStatus pendingStatus);
+
+    // US02 - Find schedules by establishment (through collection point)
+    Page<CollectionSchedule> findByCollectionPoint_Establishment(User establishment, Pageable pageable);
+
+    List<CollectionSchedule> findByCollectionPoint_Establishment(User establishment);
+
+    // US03 - Find schedules by establishment and date
+    List<CollectionSchedule> findByCollectionPoint_EstablishmentAndScheduledDate(User establishment, LocalDate date);
+
+    // US03 - Find schedules for collector (assigned + available PENDING without collector)
+    @Query("SELECT s FROM CollectionSchedule s WHERE (s.collector = :collector) OR (s.collector IS NULL AND s.status = :pendingStatus) ORDER BY s.createdAt DESC")
+    List<CollectionSchedule> findByCollectorOrAvailable(@Param("collector") User collector, @Param("pendingStatus") CollectionSchedule.ScheduleStatus pendingStatus);
 }

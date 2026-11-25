@@ -93,6 +93,10 @@ public class CollectionPoint {
     @JoinColumn(name = "collector_id")
     private User collector;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "establishment_id")
+    private User establishment;
+
     @OneToMany(mappedBy = "collectionPoint", fetch = FetchType.LAZY)
     private List<CollectionSchedule> schedules;
 

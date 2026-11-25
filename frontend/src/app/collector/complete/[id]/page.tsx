@@ -27,8 +27,13 @@ import {
   Navigation,
   Phone,
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+
+// Helper para parsear data YYYY-MM-DD como data local (evita bug de fuso UTC)
+function parseLocalDate(dateString: string): Date {
+  return parse(dateString, 'yyyy-MM-dd', new Date());
+}
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -612,7 +617,7 @@ export default function CollectionCompletePage() {
             </div>
             <div className="card-body space-y-4">
               <InfoRow label="Ponto de Coleta" value={schedule.collectionPointName} icon={<MapPin className="w-5 h-5" />} color="text-blue-600" />
-              <InfoRow label="Data" value={format(new Date(schedule.scheduledDate), 'dd/MM/yyyy', { locale: ptBR })} icon={<Calendar className="w-5 h-5" />} color="text-blue-600" />
+              <InfoRow label="Data" value={format(parseLocalDate(schedule.scheduledDate), 'dd/MM/yyyy', { locale: ptBR })} icon={<Calendar className="w-5 h-5" />} color="text-blue-600" />
               <InfoRow label="Horário" value={`${schedule.startTime}${schedule.endTime ? ` - ${schedule.endTime}` : ''}`} icon={<Clock className="w-5 h-5" />} color="text-blue-600" />
               <InfoRow label="Volume Estimado" value={schedule.estimatedVolumeLiters ? `${schedule.estimatedVolumeLiters.toLocaleString('pt-BR')} L` : 'Não informado'} icon={<Package className="w-5 h-5" />} color="text-blue-600" />
               <InfoRow label="Status" value={SCHEDULE_STATUS_LABELS[schedule.status as keyof typeof SCHEDULE_STATUS_LABELS]} icon={<Truck className="w-5 h-5" />} color="text-blue-600" badgeClass={SCHEDULE_STATUS_COLORS[schedule.status as keyof typeof SCHEDULE_STATUS_COLORS]} />

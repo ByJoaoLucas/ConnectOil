@@ -70,6 +70,11 @@ public class CollectionPointDTO {
 
     private String collectorName;
 
+    // US02 - Establishment owner of the point
+    private UUID establishmentId;
+
+    private String establishmentName;
+
     public static CollectionPointDTO fromEntity(CollectionPoint point) {
         CollectionPointDTO dto = new CollectionPointDTO();
         dto.setId(point.getId());
@@ -93,6 +98,10 @@ public class CollectionPointDTO {
         if (point.getCollector() != null) {
             dto.setCollectorId(point.getCollector().getId());
             dto.setCollectorName(point.getCollector().getName());
+        }
+        if (point.getEstablishment() != null) {
+            dto.setEstablishmentId(point.getEstablishment().getId());
+            dto.setEstablishmentName(point.getEstablishment().getName());
         }
         return dto;
     }

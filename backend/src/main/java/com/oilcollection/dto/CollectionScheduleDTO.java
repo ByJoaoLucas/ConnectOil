@@ -21,7 +21,9 @@ public class CollectionScheduleDTO {
 
     private String collectionPointName;
 
-    @NotNull(message = "Collector is required")
+    // US03 - Establishment ownership verification
+    private UUID collectionPointEstablishmentId;
+
     private UUID collectorId;
 
     private String collectorName;
@@ -75,6 +77,10 @@ public class CollectionScheduleDTO {
         if (schedule.getCollectionPoint() != null) {
             dto.setCollectionPointId(schedule.getCollectionPoint().getId());
             dto.setCollectionPointName(schedule.getCollectionPoint().getName());
+            // US03 - Establishment ownership
+            if (schedule.getCollectionPoint().getEstablishment() != null) {
+                dto.setCollectionPointEstablishmentId(schedule.getCollectionPoint().getEstablishment().getId());
+            }
         }
         if (schedule.getCollector() != null) {
             dto.setCollectorId(schedule.getCollector().getId());

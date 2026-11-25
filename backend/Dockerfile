@@ -25,6 +25,6 @@ USER appuser
 EXPOSE 8080
 
 # JVM configuration
-ENV JAVA_OPTS="-Xms256m -Xmx768m -XX:+UseG1GC -XX:+UseContainerSupport"
+ENV JAVA_OPTS="-Xms256m -Xmx768m -XX:+UseG1GC -XX:+UseContainerSupport -Duser.timezone=America/Sao_Paulo"
 
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]

@@ -1,9 +1,12 @@
 package com.oilcollection.service;
 
 import com.oilcollection.dto.NotificationDTO;
+import com.oilcollection.exception.BusinessException;
+import com.oilcollection.exception.ResourceNotFoundException;
 import com.oilcollection.model.Notification;
 import com.oilcollection.model.User;
 import com.oilcollection.repository.NotificationRepository;
+import com.oilcollection.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -20,6 +23,7 @@ import java.util.stream.Collectors;
 public class NotificationService {
 
     private final NotificationRepository notificationRepository;
+    private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
     public Page<NotificationDTO> getNotifications(UUID userId, Pageable pageable) {
@@ -45,8 +49,12 @@ public class NotificationService {
     @Transactional
     public void send(UUID userId, String title, String message, String type,
                      String relatedEntityType, UUID relatedEntityId, String deliveryMethod) {
+        // Load the user from database to ensure proper JPA relationship
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+
         Notification notification = Notification.builder()
-                .user(User.builder().id(userId).build())
+                .user(user)
                 .title(title)
                 .message(message)
                 .type(type)
@@ -75,6 +83,22 @@ public class NotificationService {
     @Transactional
     public void markAllAsRead(UUID userId) {
         notificationRepository.markAllAsReadByUserId(userId);
+    }
+
+    @Transactional
+    public void deleteNotification(UUID notificationId, UUID userId) {
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Notificação", "id", notificationId));
+
+        if (!notification.getUser().getId().equals(userId)) {
+            throw new BusinessException("Notificação não pertence ao usuário");
+        }
+
+        if (!notification.getIsRead()) {
+            throw new BusinessException("Apenas notificações lidas podem ser excluídas");
+        }
+
+        notificationRepository.delete(notification);
     }
 
     // Convenience methods for common notifications

@@ -16,6 +16,7 @@ import {
   User,
   AlertCircle,
   CheckCircle,
+  CheckCircle2,
   XCircle,
   Edit,
   Trash2,
@@ -25,8 +26,22 @@ import {
   ChevronUp,
   RefreshCw,
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useAuth } from '@/contexts/AuthContext';
+
+// Helper para parsear data YYYY-MM-DD como data local (evita bug de fuso UTC)
+function parseLocalDate(dateString: string): Date {
+  return parse(dateString, 'yyyy-MM-dd', new Date());
+}
+
+// Helper para formatar data YYYY-MM-DD como string local DD/MM/YYYY sem bug de fuso UTC
+function formatLocalDate(dateString: string, formatStr: string = 'dd/MM/yyyy'): string {
+  if (!dateString) return '-';
+  const [year, month, day] = dateString.split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  return format(date, formatStr, { locale: ptBR });
+}
 import { SCHEDULE_STATUS_LABELS, SCHEDULE_STATUS_COLORS, ScheduleStatus } from '@/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -56,6 +71,10 @@ export default function ScheduleDetailPage() {
   const params = useParams();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const isEstablishment = user?.role === 'ESTABLISHMENT';
+  const isCollector = user?.role === 'COLLECTOR';
+  const isAdmin = user?.role === 'ADMIN';
   const id = params?.id as string;
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
@@ -124,6 +143,18 @@ export default function ScheduleDetailPage() {
     },
   });
 
+  const acceptMutation = useMutation({
+    mutationFn: (id: string) => schedulesApi.accept(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['schedule', id] });
+      queryClient.invalidateQueries({ queryKey: ['schedules'] });
+      toast.success('Coleta aceita com sucesso!');
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Erro ao aceitar coleta');
+    },
+  });
+
   const startMutation = useMutation({
     mutationFn: (id: string) => schedulesApi.start(id),
     onSuccess: () => {
@@ -173,6 +204,12 @@ export default function ScheduleDetailPage() {
   const handleConfirm = () => {
     if (confirm('Confirmar este agendamento?')) {
       confirmMutation.mutate(id);
+    }
+  };
+
+  const handleAccept = () => {
+    if (confirm('Aceitar esta coleta? Você será atribuído como coletor responsável.')) {
+      acceptMutation.mutate(id);
     }
   };
 
@@ -252,14 +289,16 @@ export default function ScheduleDetailPage() {
           <div className="card">
             <div className="card-header flex items-center justify-between">
               <h3 className="text-lg font-semibold text-gray-900">Informações do Agendamento</h3>
-              <button
-                onClick={() => setIsEditModalOpen(true)}
-                disabled={['COMPLETED', 'CANCELLED'].includes(schedule.status)}
-                className="btn-outline text-sm"
-              >
-                <Edit className="w-4 h-4 mr-2" />
-                Editar
-              </button>
+              {isAdmin && (
+                <button
+                  onClick={() => setIsEditModalOpen(true)}
+                  disabled={['COMPLETED', 'CANCELLED'].includes(schedule.status)}
+                  className="btn-outline text-sm"
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Editar
+                </button>
+              )}
             </div>
             <div className="card-body">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -282,7 +321,7 @@ export default function ScheduleDetailPage() {
                   <div className="mt-1 flex items-center space-x-2">
                     <Calendar className="w-5 h-5 text-gray-400" />
                     <span className="font-medium text-gray-900">
-                      {format(new Date(schedule.scheduledDate), 'EEEE, dd/MM/yyyy', { locale: ptBR })}
+                      {format(parseLocalDate(schedule.scheduledDate), 'EEEE, dd/MM/yyyy', { locale: ptBR })}
                     </span>
                   </div>
                 </div>
@@ -352,6 +391,16 @@ export default function ScheduleDetailPage() {
                   )}
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* US03 - Timeline de Status do Agendamento */}
+          <div className="card">
+            <div className="card-header">
+              <h3 className="text-lg font-semibold text-gray-900">Histórico de Status</h3>
+            </div>
+            <div className="card-body">
+              <Timeline events={buildTimeline(schedule)} />
             </div>
           </div>
 
@@ -426,36 +475,58 @@ export default function ScheduleDetailPage() {
               <h3 className="text-lg font-semibold text-gray-900">Ações</h3>
             </div>
             <div className="card-body space-y-3">
-              {schedule.status === 'PENDING' && (
-                <button
-                  onClick={handleConfirm}
-                  disabled={confirmMutation.isPending}
-                  className="btn-primary w-full justify-center"
-                >
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  {confirmMutation.isPending ? 'Confirmando...' : 'Confirmar Agendamento'}
-                </button>
-              )}
-              {schedule.status === 'CONFIRMED' && (
-                <button
-                  onClick={handleStart}
-                  disabled={startMutation.isPending}
-                  className="btn-warning w-full justify-center"
-                >
-                  <Truck className="w-4 h-4 mr-2" />
-                  {startMutation.isPending ? 'Iniciando...' : 'Iniciar Coleta'}
-                </button>
-              )}
-              {(schedule.status === 'CONFIRMED' || schedule.status === 'IN_PROGRESS') && (
-                <button
-                  onClick={handleComplete}
-                  disabled={completeMutation.isPending}
-                  className="btn-success w-full justify-center"
-                >
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  {completeMutation.isPending ? 'Concluindo...' : 'Marcar como Concluído'}
-                </button>
-              )}
+              {/* Botão "Aceitar Coleta" para COLLECTOR em agendamentos PENDING sem coletor */}
+              {isCollector &&
+                schedule.status === 'PENDING' &&
+                !schedule.collectorId &&
+                (
+                  <button
+                    onClick={handleAccept}
+                    disabled={acceptMutation.isPending}
+                    className="btn-success w-full justify-center"
+                  >
+                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                    {acceptMutation.isPending ? 'Aceitando...' : 'Aceitar Coleta'}
+                  </button>
+                )}
+              {/* Botão Confirmar: apenas ADMIN ou COLLECTOR dono do agendamento (com coletor atribuído) */}
+              {schedule.status === 'PENDING' &&
+                schedule.collectorId &&
+                (isAdmin || (isCollector && schedule.collectorId === user?.id)) && (
+                  <button
+                    onClick={handleConfirm}
+                    disabled={confirmMutation.isPending}
+                    className="btn-primary w-full justify-center"
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    {confirmMutation.isPending ? 'Confirmando...' : 'Confirmar Agendamento'}
+                  </button>
+                )}
+              {/* Botão Iniciar Deslocamento: ADMIN ou COLLECTOR dono - para status CONFIRMED ou ASSIGNED (Atribuída) */}
+              {(schedule.status === 'CONFIRMED' || schedule.status === 'ASSIGNED') &&
+                (isAdmin || (isCollector && schedule.collectorId === user?.id)) && (
+                  <button
+                    onClick={handleStart}
+                    disabled={startMutation.isPending}
+                    className="btn-warning w-full justify-center"
+                  >
+                    <Truck className="w-4 h-4 mr-2" />
+                    {startMutation.isPending ? 'Iniciando...' : 'Iniciar Deslocamento (A caminho)'}
+                  </button>
+                )}
+              {/* Botão Concluir Coleta: ADMIN ou COLLECTOR dono - para status IN_PROGRESS (A caminho) */}
+              {schedule.status === 'IN_PROGRESS' &&
+                (isAdmin || (isCollector && schedule.collectorId === user?.id)) && (
+                  <button
+                    onClick={handleComplete}
+                    disabled={completeMutation.isPending}
+                    className="btn-success w-full justify-center"
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    {completeMutation.isPending ? 'Concluindo...' : 'Concluir Coleta'}
+                  </button>
+                )}
+              {/* Botão Cancelar: todos podem cancelar conforme regras de negócio */}
               {['PENDING', 'CONFIRMED', 'IN_PROGRESS'].includes(schedule.status) && (
                 <button
                   onClick={handleCancel}
@@ -466,7 +537,8 @@ export default function ScheduleDetailPage() {
                   {cancelMutation.isPending ? 'Cancelando...' : 'Cancelar Agendamento'}
                 </button>
               )}
-              {schedule.status !== 'COMPLETED' && (
+              {/* Botão Excluir: apenas ADMIN */}
+              {isAdmin && schedule.status !== 'COMPLETED' && (
                 <button
                   onClick={handleDelete}
                   disabled={deleteMutation.isPending}
@@ -512,6 +584,7 @@ export default function ScheduleDetailPage() {
               onSubmit={handleSubmit}
               onClose={() => setIsEditModalOpen(false)}
               isLoading={updateMutation.isPending}
+              isAdmin={isAdmin}
             />
           </div>
         </div>
@@ -527,6 +600,7 @@ function ScheduleEditForm({
   onSubmit,
   onClose,
   isLoading,
+  isAdmin,
 }: {
   schedule: CollectionSchedule;
   points: CollectionPoint[];
@@ -534,6 +608,7 @@ function ScheduleEditForm({
   onSubmit: (data: ScheduleFormData) => void;
   onClose: () => void;
   isLoading: boolean;
+  isAdmin: boolean;
 }) {
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<ScheduleFormData>({
     resolver: zodResolver(scheduleSchema),
@@ -541,8 +616,9 @@ function ScheduleEditForm({
       collectionPointId: schedule.collectionPointId,
       collectorId: schedule.collectorId,
       scheduledDate: schedule.scheduledDate,
-      startTime: schedule.startTime,
-      endTime: schedule.endTime || '',
+      // Backend returns HH:mm:ss, slice to HH:mm for time input
+      startTime: schedule.startTime ? schedule.startTime.slice(0, 5) : '',
+      endTime: schedule.endTime ? schedule.endTime.slice(0, 5) : '',
       notes: schedule.notes || '',
       estimatedVolumeLiters: schedule.estimatedVolumeLiters,
     },
@@ -563,17 +639,20 @@ function ScheduleEditForm({
           {errors.collectionPointId && <p className="error-message">{errors.collectionPointId.message}</p>}
         </div>
 
-        <div>
-          <label className="label">Coletor *</label>
-          <select {...register('collectorId')} className={`input ${errors.collectorId ? 'input-error' : ''}`}>
-            {collectors.map((collector) => (
-              <option key={collector.id} value={collector.id}>
-                {collector.name} ({collector.email})
-              </option>
-            ))}
-          </select>
-          {errors.collectorId && <p className="error-message">{errors.collectorId.message}</p>}
-        </div>
+        {/* Coletor: apenas ADMIN pode escolher */}
+        {isAdmin && (
+          <div>
+            <label className="label">Coletor *</label>
+            <select {...register('collectorId')} className={`input ${errors.collectorId ? 'input-error' : ''}`}>
+              {collectors.map((collector) => (
+                <option key={collector.id} value={collector.id}>
+                  {collector.name} ({collector.email})
+                </option>
+              ))}
+            </select>
+            {errors.collectorId && <p className="error-message">{errors.collectorId.message}</p>}
+          </div>
+        )}
 
         <div>
           <label className="label">Data *</label>
@@ -581,7 +660,7 @@ function ScheduleEditForm({
             type="date"
             {...register('scheduledDate')}
             className={`input ${errors.scheduledDate ? 'input-error' : ''}`}
-            min={new Date().toISOString().split('T')[0]}
+            min={isAdmin ? undefined : new Date().toISOString().split('T')[0]}
           />
           {errors.scheduledDate && <p className="error-message">{errors.scheduledDate.message}</p>}
         </div>
@@ -647,5 +726,129 @@ function StatItem({ label, value, icon, color }: { label: string; value: string;
       </div>
     </div>
   );
+}
+
+// US03 - Timeline component for schedule status history
+interface TimelineEvent {
+  label: string;
+  date: string;
+  description: string;
+  icon: React.ReactNode;
+  color: string;
+  isCurrent?: boolean;
+}
+
+function Timeline({ events }: { events: TimelineEvent[] }) {
+  return (
+    <div className="relative pl-4 border-l-2 border-gray-200">
+      {events.map((event, index) => (
+        <div key={index} className="relative pb-6 last:pb-0">
+          <div className="absolute left-[-10px] top-0 w-4 h-4 rounded-full border-2 border-white flex items-center justify-center"
+               style={{ backgroundColor: event.color, borderColor: event.color }}>
+            {event.isCurrent && <div className="w-2 h-2 rounded-full bg-white" />}
+          </div>
+          <div className="ml-4">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm font-medium text-gray-900">{event.label}</span>
+              <span className="text-xs text-gray-500">{event.date}</span>
+            </div>
+            <p className="text-sm text-gray-600 mt-1 ml-2">{event.description}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function buildTimeline(schedule: CollectionSchedule): TimelineEvent[] {
+  const events: TimelineEvent[] = [];
+
+  // Created
+  if (schedule.createdAt) {
+    events.push({
+      label: 'Criado',
+      date: format(new Date(schedule.createdAt), 'dd/MM/yyyy HH:mm', { locale: ptBR }),
+      description: `Agendamento criado para ${formatLocalDate(schedule.scheduledDate, 'dd/MM/yyyy')} às ${schedule.startTime}`,
+      icon: <Calendar className="w-4 h-4" />,
+      color: '#6b7280', // gray
+    });
+  }
+
+  // Assigned/Confirmed
+  if (schedule.assignedAt) {
+    events.push({
+      label: schedule.status === 'PENDING' ? 'Atribuído' : 'Confirmado',
+      date: format(new Date(schedule.assignedAt), 'dd/MM/yyyy HH:mm', { locale: ptBR }),
+      description: schedule.collectorName
+        ? `Coletor ${schedule.collectorName} atribuído`
+        : 'Agendamento confirmado pelo coletor',
+      icon: <User className="w-4 h-4" />,
+      color: '#6366f1', // indigo
+    });
+  }
+
+  // En route
+  if (schedule.enRouteAt) {
+    events.push({
+      label: 'A caminho',
+      date: format(new Date(schedule.enRouteAt), 'dd/MM/yyyy HH:mm', { locale: ptBR }),
+      description: 'Coletor saiu em direção ao ponto de coleta',
+      icon: <Truck className="w-4 h-4" />,
+      color: '#f97316', // orange
+    });
+  }
+
+  // In progress (arrived)
+  if (schedule.status === 'IN_PROGRESS' || schedule.status === 'COMPLETED') {
+    const arrivedDate = schedule.enRouteAt; // approximate - we don't have a separate arrivedAt field
+    events.push({
+      label: 'Em andamento',
+      date: schedule.enRouteAt
+        ? format(new Date(schedule.enRouteAt), 'dd/MM/yyyy HH:mm', { locale: ptBR })
+        : '—',
+      description: 'Coletor chegou ao ponto e iniciou a coleta',
+      icon: <MapPin className="w-4 h-4" />,
+      color: '#eab308', // yellow
+      isCurrent: schedule.status === 'IN_PROGRESS',
+    });
+  }
+
+  // Completed
+  if (schedule.completedAt) {
+    events.push({
+      label: 'Concluído',
+      date: format(new Date(schedule.completedAt), 'dd/MM/yyyy HH:mm', { locale: ptBR }),
+      description: `Coleta finalizada${schedule.cancellationReason ? ` (${schedule.cancellationReason})` : ''}`,
+      icon: <CheckCircle className="w-4 h-4" />,
+      color: '#22c55e', // green
+      isCurrent: schedule.status === 'COMPLETED',
+    });
+  }
+
+  // Cancelled
+  if (schedule.cancelledAt) {
+    events.push({
+      label: 'Cancelado',
+      date: format(new Date(schedule.cancelledAt), 'dd/MM/yyyy HH:mm', { locale: ptBR }),
+      description: schedule.cancellationReason ? `Motivo: ${schedule.cancellationReason}` : 'Agendamento cancelado',
+      icon: <XCircle className="w-4 h-4" />,
+      color: '#ef4444', // red
+      isCurrent: schedule.status === 'CANCELLED',
+    });
+  }
+
+  // Rescheduled
+  if (schedule.status === 'RESCHEDULED' && schedule.updatedAt) {
+    events.push({
+      label: 'Reagendado',
+      date: format(new Date(schedule.updatedAt), 'dd/MM/yyyy HH:mm', { locale: ptBR }),
+      description: `Nova data: ${format(new Date(schedule.scheduledDate), 'dd/MM/yyyy', { locale: ptBR })}`,
+      icon: <RefreshCw className="w-4 h-4" />,
+      color: '#8b5cf6', // purple
+      isCurrent: true,
+    });
+  }
+
+  return events;
 }
 

@@ -26,8 +26,13 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+
+// Helper para parsear data YYYY-MM-DD como data local (evita bug de fuso UTC)
+function parseLocalDate(dateString: string): Date {
+  return parse(dateString, 'yyyy-MM-dd', new Date());
+}
 import { STATUS_LABELS, STATUS_COLORS, PointStatus, ScheduleStatus } from '@/types';
 
 interface ScheduleFormData {
@@ -161,14 +166,6 @@ export default function CollectionPointDetailPage() {
                   <p className="mt-1 text-sm text-gray-900">{point.zipCode || '-'}</p>
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Coordenadas</label>
-                  <p className="mt-1 text-sm text-gray-900">
-                    {point.latitude && point.longitude
-                      ? `${point.latitude.toFixed(6)}, ${point.longitude.toFixed(6)}`
-                      : 'Não informado'}
-                  </p>
-                </div>
-                <div>
                   <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">Capacidade</label>
                   <p className="mt-1 text-sm text-gray-900">
                     {point.capacityLiters ? `${point.capacityLiters.toLocaleString('pt-BR')} L` : 'Não informado'}
@@ -288,7 +285,7 @@ export default function CollectionPointDetailPage() {
                         schedules.map((schedule) => (
                           <tr key={schedule.id}>
                             <td>
-                              {format(new Date(schedule.scheduledDate), 'dd/MM/yyyy', { locale: ptBR })}
+                              {format(parseLocalDate(schedule.scheduledDate), 'dd/MM/yyyy', { locale: ptBR })}
                               {schedule.isToday && <span className="ml-2 badge-info">Hoje</span>}
                             </td>
                             <td>{schedule.startTime}{schedule.endTime && ` - ${schedule.endTime}`}</td>

@@ -30,7 +30,7 @@
 - ✅ Implementar transições de status: AGENDADO → ATRIBUÍDO → A_CAMINHO → CONCLUÍDO/CANCELADO
 - ✅ Adicionar regras de cancelamento: 2h antes para estabelecimento, a qualquer momento com justificativa para coletor
 - ✅ Criar endpoint de alerta "quase cheio"
-- 🟡 Implementar sistema de notificações (email/push placeholder - entidade existe, serviço parcial)
+- ✅ Implementar sistema de notificações completo: SCHEDULE_CREATED, SCHEDULE_ASSIGNED, SCHEDULE_EN_ROUTE, SCHEDULE_COMPLETED, SCHEDULE_CANCELLED, COLLECTION_ALMOST_FULL, DISCREPANCY_DETECTED, CERTIFICATE_READY, EXCHANGE_PRODUCTS_READY, INCIDENT_REPORTED
 
 ### Frontend
 - ✅ Criar Assistente de Agendamento: seletor de data, janelas de horário (manhã/tarde/flexível), volume, seletor de tipo
@@ -127,16 +127,16 @@
 | Fase | Total | ✅ Concluído | 🟡 Em Andamento | 🔴 Não Iniciado |
 |------|-------|--------------|-----------------|-----------------|
 | Fase 1 | 11 | 6 | 3 | 2 |
-| Fase 2 | 10 | 8 | 1 | 1 |
+| Fase 2 | 10 | 9 | 0 | 1 |
 | Fase 3 | 8 | 2 | 3 | 3 |
 | Fase 4 | 8 | 3 | 3 | 2 |
 | Fase 5 | 9 | 4 | 4 | 1 |
 | Fase 6 | 7 | 1 | 2 | 4 |
 | Fase 7 | 7 | 1 | 3 | 3 |
 | Fase 8 | 4 | 0 | 4 | 0 |
-| **Total** | **64** | **25** | **23** | **16** |
+| **Total** | **64** | **26** | **22** | **16** |
 
-**Progresso Geral: ~39% concluído, ~36% em andamento, ~25% não iniciado**
+**Progresso Geral: ~41% concluído, ~34% em andamento, ~25% não iniciado**
 
 ---
 
