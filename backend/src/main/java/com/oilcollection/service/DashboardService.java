@@ -32,17 +32,23 @@ public class DashboardService {
     private final CollectionRecordRepository recordRepository;
     private final UserRepository userRepository;
 
+    private static final String LOG_PREFIX = "[DashboardService]";
+
     @Transactional(readOnly = true)
     public DashboardStatsDTO getDashboardStats(User currentUser) {
-        return switch (currentUser.getRole()) {
+        log.debug("{} Buscando estatísticas do dashboard para usuário: {} (role: {})", LOG_PREFIX, currentUser.getEmail(), currentUser.getRole());
+        DashboardStatsDTO stats = switch (currentUser.getRole()) {
             case ADMIN -> getAdminDashboardStats();
             case ESTABLISHMENT -> getEstablishmentDashboardStats(currentUser);
             case COLLECTOR -> getCollectorDashboardStats(currentUser);
             default -> getDefaultDashboardStats();
         };
+        log.info("{} Estatísticas do dashboard geradas para usuário: {} (role: {})", LOG_PREFIX, currentUser.getEmail(), currentUser.getRole());
+        return stats;
     }
 
     private DashboardStatsDTO getAdminDashboardStats() {
+        log.debug("{} Gerando estatísticas de dashboard para ADMIN", LOG_PREFIX);
         LocalDate today = LocalDate.now();
         LocalDateTime startOfDay = today.atStartOfDay();
         LocalDateTime endOfDay = today.atTime(23, 59, 59);
@@ -76,6 +82,11 @@ public class DashboardService {
         long totalEstablishments = userRepository.countByRole(User.UserRole.ESTABLISHMENT);
         long activeEstablishments = userRepository.countByRoleAndIsActive(User.UserRole.ESTABLISHMENT, true);
 
+        log.debug("{} Dashboard ADMIN - Pontos: total={}, ativos={}, cheios={}, pendentes={}", LOG_PREFIX, totalPoints, activePoints, fullPoints, pendingApprovalPoints);
+        log.debug("{} Dashboard ADMIN - Agendamentos: total={}, pendentes={}, confirmados={}, hoje={}, atrasados={}", LOG_PREFIX, totalSchedules, pendingSchedules, confirmedSchedules, todaySchedules, overdueSchedules);
+        log.debug("{} Dashboard ADMIN - Registros: total={}, pendentesVerificacao={}, mes={}, volumeTotal={}, volumeMes={}", LOG_PREFIX, totalRecords, pendingVerification, monthRecords, totalVolume, monthVolume);
+        log.debug("{} Dashboard ADMIN - Usuários: coletoresTotal={}, coletoresAtivos={}, estabelecimentosTotal={}, estabelecimentosAtivos={}", LOG_PREFIX, totalCollectors, activeCollectors, totalEstablishments, activeEstablishments);
+
         return DashboardStatsDTO.builder()
                 // Points
                 .totalPoints(totalPoints)
@@ -103,6 +114,7 @@ public class DashboardService {
     }
 
     private DashboardStatsDTO getEstablishmentDashboardStats(User establishmentUser) {
+        log.debug("{} Gerando estatísticas de dashboard para ESTABELECIMENTO: {}", LOG_PREFIX, establishmentUser.getEmail());
         LocalDate today = LocalDate.now();
         LocalDateTime startOfDay = today.atStartOfDay();
         LocalDateTime endOfDay = today.atTime(23, 59, 59);
@@ -148,6 +160,10 @@ public class DashboardService {
                 .filter(r -> !r.getVerifiedByManager())
                 .count();
 
+        log.debug("{} Dashboard ESTABELECIMENTO - Pontos: total={}, ativos={}, cheios={}", LOG_PREFIX, totalPoints, activePoints, fullPoints);
+        log.debug("{} Dashboard ESTABELECIMENTO - Agendamentos: total={}, pendentes={}, hoje={}", LOG_PREFIX, totalSchedules, pendingSchedules, todaySchedules);
+        log.debug("{} Dashboard ESTABELECIMENTO - Registros: total={}, pendentesVerificacao={}, mes={}, volumeTotal={}, volumeMes={}", LOG_PREFIX, totalRecords, pendingVerification, monthRecords, totalVolume, monthVolume);
+
         return DashboardStatsDTO.builder()
                 // Points
                 .totalPoints(totalPoints)
@@ -175,6 +191,7 @@ public class DashboardService {
     }
 
     private DashboardStatsDTO getCollectorDashboardStats(User collectorUser) {
+        log.debug("{} Gerando estatísticas de dashboard para COLETOR: {}", LOG_PREFIX, collectorUser.getEmail());
         LocalDate today = LocalDate.now();
         LocalDateTime startOfDay = today.atStartOfDay();
         LocalDateTime endOfDay = today.atTime(23, 59, 59);
@@ -233,6 +250,10 @@ public class DashboardService {
                 .average()
                 .orElse(0.0);
 
+        log.debug("{} Dashboard COLETOR - Agendamentos: total={}, pendentes={}, hoje={}, emProgresso={}, concluidos={}", LOG_PREFIX, totalSchedules, pendingSchedules, todaySchedules, inProgressSchedules, completedSchedules);
+        log.debug("{} Dashboard COLETOR - Registros: total={}, pendentesVerificacao={}, mes={}, volumeTotal={}, volumeMes={}", LOG_PREFIX, totalRecords, pendingVerification, monthRecords, totalVolume, monthVolume);
+        log.debug("{} Dashboard COLETOR - Pontos: total={}, ativos={}, cheios={}, qualidadeMedia={}", LOG_PREFIX, totalPoints, activePoints, fullPoints, avgQuality);
+
         return DashboardStatsDTO.builder()
                 // Points
                 .totalPoints(totalPoints)
@@ -264,6 +285,7 @@ public class DashboardService {
     }
 
     private DashboardStatsDTO getDefaultDashboardStats() {
+        log.debug("{} Gerando estatísticas de dashboard padrão (role não reconhecida)", LOG_PREFIX);
         return DashboardStatsDTO.builder()
                 .totalPoints(0L)
                 .activePoints(0L)
