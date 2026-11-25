@@ -15,6 +15,7 @@ jest.mock('@/contexts/AuthContext', () => ({
 }));
 
 jest.mock('@/lib/api', () => ({
+  dashboardApi: { getStats: jest.fn() },
   collectionPointsApi: { getAllList: jest.fn() },
   schedulesApi: { getAllList: jest.fn() },
   recordsApi: { getAllList: jest.fn() },
@@ -29,16 +30,26 @@ jest.mock('@tanstack/react-query', () => ({
             totalPoints: 2,
             activePoints: 1,
             fullPoints: 1,
+            pendingApprovalPoints: 0,
+            totalCollectors: 1,
+            activeCollectors: 1,
+            totalEstablishments: 1,
+            activeEstablishments: 1,
             todaySchedules: 1,
             pendingSchedules: 1,
-            totalVolume: 120,
-            monthVolume: 120,
+            inProgressSchedules: 0,
+            completedSchedules: 0,
+            totalSchedules: 1,
             totalRecords: 1,
             monthRecords: 1,
             pendingVerification: 0,
             overdueSchedules: 0,
+            totalVolume: 120,
+            monthVolume: 120,
+            avgQuality: 4,
           },
         },
+        isLoading: false,
       };
     }
 
@@ -64,7 +75,7 @@ jest.mock('@tanstack/react-query', () => ({
             scheduledDate: '2026-11-20',
             startTime: '08:00',
             endTime: '10:00',
-            status: 'CONFIRMED',
+            status: 'PENDING',
             isToday: true,
             isOverdue: false,
           }],
@@ -85,10 +96,17 @@ jest.mock('@tanstack/react-query', () => ({
           verifiedByManager: false,
         }],
       },
+      isLoading: false,
     };
   },
-  useQueryClient: () => ({ invalidateQueries: jest.fn() }),
-  useMutation: () => ({ mutate: jest.fn(), isPending: false }),
+  useMutation: () => ({
+    mutate: jest.fn(),
+    mutateAsync: jest.fn(),
+    isPending: false,
+  }),
+  useQueryClient: () => ({
+    invalidateQueries: jest.fn(),
+  }),
 }));
 
 describe('DashboardPage', () => {
@@ -108,7 +126,7 @@ describe('DashboardPage', () => {
     expect(screen.getByText('Meus Agendamentos Atribuídos')).toBeInTheDocument();
     expect(screen.getByText('Minhas Últimas Coletas')).toBeInTheDocument();
     expect(screen.getAllByText('Posto Central').length).toBeGreaterThan(0);
-    expect(screen.getByText('Pendente')).toBeInTheDocument();
+    expect(screen.getAllByText('Pendente').length).toBeGreaterThan(0);
   });
 
   it('applies collector filters to schedules and records', () => {

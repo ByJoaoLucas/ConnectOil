@@ -112,7 +112,7 @@ public class SecurityConfig {
         // Allow specific frontend origins - no wildcard with credentials
         configuration.setAllowedOrigins(List.of(
                 "http://localhost:3000",
-                "https://connectoil.com.br"
+                "https://connectoil.onrender.com"
         ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of(
