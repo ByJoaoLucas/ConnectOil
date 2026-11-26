@@ -130,7 +130,7 @@
   }
 
   .sidebar {
-    @apply fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0;
+    @apply fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:block lg:w-64 lg:flex-shrink-0 lg:h-full;
   }
 
   .sidebar-open {
@@ -138,11 +138,38 @@
   }
 
   .sidebar-closed {
-    @apply -translate-x-full;
+    @apply -translate-x-full lg:hidden lg:w-0;
   }
 
   .main-content {
-    @apply lg:ml-64 min-h-screen transition-all duration-300;
+    @apply min-h-screen transition-all duration-300 flex-1 min-w-0;
+  }
+
+  /* Desktop layout: flex container with sidebar in flow */
+  .layout-container {
+    @apply flex min-h-screen;
+  }
+
+  .layout-container .sidebar {
+    @apply lg:fixed lg:inset-y-0 lg:left-0 lg:translate-x-0 lg:flex-shrink-0 lg:h-full lg:z-50;
+  }
+
+  /* Sidebar open: full width (w-64), main content ml-64 */
+  .layout-container .sidebar.sidebar-open {
+    @apply lg:w-64;
+  }
+
+  .layout-container:has(.sidebar.sidebar-open) .main-content {
+    @apply lg:ml-64;
+  }
+
+  /* Sidebar closed: collapsed width (w-20), main content ml-20 */
+  .layout-container .sidebar.sidebar-closed {
+    @apply lg:w-20 lg:block;
+  }
+
+  .layout-container:has(.sidebar.sidebar-closed) .main-content {
+    @apply lg:ml-20;
   }
 }
 
